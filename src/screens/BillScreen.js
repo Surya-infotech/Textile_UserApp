@@ -1437,13 +1437,6 @@ export default function BillScreen({ navigation }) {
                     {bill.billBookName || 'Standard Bill Book'}
                   </Text>
                 </View>
-                {bill.billBookDiscount ? (
-                  <View style={styles.bannerDiscountBadge}>
-                    <Text style={styles.bannerDiscountText}>
-                      {bill.billBookDiscount}% Disc
-                    </Text>
-                  </View>
-                ) : null}
               </View>
 
               {/* Card Header Row */}
@@ -1517,85 +1510,21 @@ export default function BillScreen({ navigation }) {
                 ) : null}
               </View>
 
-              {/* Applied Taxes Badges */}
-              {bill.taxes && bill.taxes.length > 0 && (
-                <View style={styles.taxesRow}>
-                  <Text style={styles.taxesPrefix}>Taxes:</Text>
-                  {bill.taxes.map((t, idx) => (
-                    <View key={t.id || idx} style={styles.taxChip}>
-                      <Text style={styles.taxChipName}>{t.taxName}:</Text>
-                      <Text style={styles.taxChipRate}>{t.taxRate}%</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* Items Summary Table */}
-              {bill.items && bill.items.length > 0 && (
-                <View style={styles.itemsTable}>
-                  <View style={styles.tableHeader}>
-                    <Text style={[styles.tableColHeader, { flex: 3 }]}>Item & Ch.No.</Text>
-                    <Text style={[styles.tableColHeader, { flex: 1.2, textAlign: 'center' }]}>Psc</Text>
-                    <Text style={[styles.tableColHeader, { flex: 1.5, textAlign: 'right' }]}>Rate</Text>
-                    <Text style={[styles.tableColHeader, { flex: 2, textAlign: 'right' }]}>Amount</Text>
-                  </View>
-                  {bill.items.map((it, idx) => (
-                    <View key={it.id || idx} style={styles.tableRow}>
-                      <View style={{ flex: 3 }}>
-                        <Text style={styles.itemDesc} numberOfLines={1}>
-                          {it.description || 'Item'}
-                        </Text>
-                        {it.chNo ? (
-                          <Text style={styles.itemChNo}>Ch.No: {it.chNo}</Text>
-                        ) : null}
-                      </View>
-                      <Text style={[styles.itemText, { flex: 1.2, textAlign: 'center' }]}>
-                        {it.psc || '-'}
-                      </Text>
-                      <Text style={[styles.itemText, { flex: 1.5, textAlign: 'right' }]}>
-                        ₹{it.rate || '-'}
-                      </Text>
-                      <Text style={[styles.itemAmountText, { flex: 2, textAlign: 'right' }]}>
-                        ₹{parseFloat(it.amount || 0).toLocaleString('en-IN')}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* Bank Details in Card */}
-              {bill.billBookBankName ? (
-                <View style={styles.cardBankRow}>
-                  <Ionicons name="card-outline" size={13} color="#64748B" />
-                  <Text style={styles.cardBankText} numberOfLines={1}>
-                    Bank: {bill.billBookBankName}
-                    {bill.billBookAccountNo ? ` • A/C: ${bill.billBookAccountNo}` : ''}
-                    {bill.billBookIfsc ? ` • IFSC: ${bill.billBookIfsc}` : ''}
-                  </Text>
-                </View>
-              ) : null}
-
               {/* Card Footer: Total Amount & Download PDF */}
               <View style={styles.cardFooter}>
-                <View style={styles.cardFooterLeft}>
-                  <Text style={styles.totalItemsLabel}>
-                    {bill.items ? bill.items.length : 0} items
-                    {bill.totalPsc ? ` • ${bill.totalPsc} psc` : ''}
+                <TouchableOpacity
+                  style={styles.footerPdfBtn}
+                  onPress={() => handleDownloadPdf(bill)}
+                  activeOpacity={0.7}
+                  disabled={generatingPdfId === bill.id}
+                >
+                  <Ionicons name="cloud-download-outline" size={13} color="#DC2626" />
+                  <Text style={styles.footerPdfBtnText}>
+                    {generatingPdfId === bill.id ? 'Generating...' : 'Download PDF'}
                   </Text>
-                  <TouchableOpacity
-                    style={styles.footerPdfBtn}
-                    onPress={() => handleDownloadPdf(bill)}
-                    activeOpacity={0.7}
-                    disabled={generatingPdfId === bill.id}
-                  >
-                    <Ionicons name="cloud-download-outline" size={13} color="#DC2626" />
-                    <Text style={styles.footerPdfBtnText}>
-                      {generatingPdfId === bill.id ? 'Generating...' : 'Download PDF'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
+
                 <View style={styles.totalAmountWrap}>
-                  <Text style={styles.totalAmountLabel}>Grand Total:</Text>
                   <Text style={styles.totalAmountValue}>
                     ₹{parseFloat(bill.totalAmount || 0).toLocaleString('en-IN')}
                   </Text>
