@@ -199,8 +199,8 @@ const generateBillHtml = (bill) => {
       ? parseFloat(bill.totalAmount) || 0
       : Math.round((taxableTotal + totalTaxes) * 100) / 100;
 
-  // Render at least 11 rows to simulate pre-printed invoice book pad in photo
-  const minRows = 11;
+  // Render at least 8 rows to simulate pre-printed invoice book pad in photo on A5
+  const minRows = 8;
   const emptyRowsCount = Math.max(0, minRows - items.length);
   const emptyRows = Array.from({ length: emptyRowsCount });
 
@@ -221,8 +221,8 @@ const generateBillHtml = (bill) => {
   <title>Invoice - ${bill.billNo || 'Bill'}</title>
   <style>
     @page {
-      size: A4 portrait;
-      margin: 8mm;
+      size: A5 portrait;
+      margin: 4.5mm;
     }
     * {
       box-sizing: border-box;
@@ -235,14 +235,14 @@ const generateBillHtml = (bill) => {
       background-color: #fce7f3; /* Authentic Pink Receipt Paper */
       color: #1e1b4b; /* Deep Indigo / Navy Ink */
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 13px;
-      line-height: 1.25;
+      font-size: 11px;
+      line-height: 1.22;
     }
     .bill-wrapper {
       width: 100%;
-      min-height: 275mm;
-      border: 2.5px solid #1e1b4b;
-      padding: 12px 14px 14px 14px;
+      min-height: 198mm;
+      border: 2px solid #1e1b4b;
+      padding: 8px 10px 10px 10px;
       background-color: #fce7f3;
       display: flex;
       flex-direction: column;
@@ -253,33 +253,33 @@ const generateBillHtml = (bill) => {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1.5px solid #1e1b4b;
-      padding-bottom: 5px;
-      margin-bottom: 8px;
+      border-bottom: 1.2px solid #1e1b4b;
+      padding-bottom: 4px;
+      margin-bottom: 5px;
     }
     .tax-badge {
       background-color: #1e1b4b;
       color: #ffffff;
-      font-size: 11px;
+      font-size: 9.5px;
       font-weight: 800;
-      padding: 3px 8px;
-      border-radius: 4px;
-      letter-spacing: 0.5px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.4px;
     }
     .slogan-box {
       text-align: center;
-      font-size: 12px;
+      font-size: 10.5px;
       font-weight: 800;
       color: #1e1b4b;
-      line-height: 1.2;
+      line-height: 1.15;
     }
     .slogan-sub {
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 700;
       color: #312e81;
     }
     .mobile-box {
-      font-size: 12px;
+      font-size: 10.5px;
       font-weight: 800;
       color: #1e1b4b;
     }
@@ -287,55 +287,55 @@ const generateBillHtml = (bill) => {
     /* Firm Header */
     .firm-header-section {
       text-align: center;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
     }
     .firm-title {
-      font-size: 27px;
+      font-size: 21px;
       font-weight: 900;
       color: #1e1b4b;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.3px;
       margin: 0;
-      line-height: 1.2;
+      line-height: 1.15;
     }
     .firm-tagline {
-      font-size: 14px;
+      font-size: 11.5px;
       font-style: italic;
       font-family: 'Times New Roman', Times, serif;
       font-weight: 700;
       color: #312e81;
-      margin-top: 3px;
+      margin-top: 1px;
     }
     .firm-address {
-      font-size: 12px;
+      font-size: 10px;
       font-weight: 600;
       color: #1e1b4b;
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     /* Customer & Invoice Details Box */
     .customer-box {
-      border: 1.5px solid #1e1b4b;
-      border-radius: 8px;
-      padding: 10px 12px;
+      border: 1.2px solid #1e1b4b;
+      border-radius: 6px;
+      padding: 6px 8px;
       display: flex;
       justify-content: space-between;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
       background-color: rgba(255, 255, 255, 0.3);
     }
     .customer-col-left {
       width: 65%;
       display: flex;
       flex-direction: column;
-      gap: 7px;
+      gap: 5px;
     }
     .customer-col-right {
       width: 32%;
-      border-left: 1.5px solid #1e1b4b;
-      padding-left: 14px;
+      border-left: 1.2px solid #1e1b4b;
+      padding-left: 10px;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 10px;
+      gap: 7px;
     }
     .detail-row {
       display: flex;
@@ -343,17 +343,17 @@ const generateBillHtml = (bill) => {
     }
     .detail-label {
       font-weight: 800;
-      font-size: 13px;
+      font-size: 11px;
       color: #1e1b4b;
       white-space: nowrap;
     }
     .detail-line-val {
       flex: 1;
       border-bottom: 1px dotted #1e1b4b;
-      margin-left: 8px;
-      padding-left: 4px;
+      margin-left: 6px;
+      padding-left: 3px;
       font-weight: 800;
-      font-size: 14px;
+      font-size: 11.5px;
       color: #0f172a;
     }
 
@@ -361,14 +361,14 @@ const generateBillHtml = (bill) => {
     .items-table {
       width: 100%;
       border-collapse: collapse;
-      border: 1.5px solid #1e1b4b;
+      border: 1.2px solid #1e1b4b;
     }
     .items-table th {
       background-color: #1e1b4b;
       color: #ffffff;
       font-weight: 800;
-      font-size: 12px;
-      padding: 7px 4px;
+      font-size: 10px;
+      padding: 4px 2px;
       border-right: 1px solid #ffffff;
       text-align: center;
     }
@@ -376,12 +376,12 @@ const generateBillHtml = (bill) => {
       border-right: none;
     }
     .items-table td {
-      padding: 5px 6px;
-      font-size: 12px;
-      border-right: 1.5px solid #1e1b4b;
+      padding: 3px 4px;
+      font-size: 10px;
+      border-right: 1.2px solid #1e1b4b;
       border-bottom: 1px dotted #c7d2fe;
       vertical-align: middle;
-      height: 25px;
+      height: 18px;
     }
     .items-table td:last-child {
       border-right: none;
@@ -396,15 +396,15 @@ const generateBillHtml = (bill) => {
     /* Bottom Section */
     .bottom-split {
       display: flex;
-      border-left: 1.5px solid #1e1b4b;
-      border-right: 1.5px solid #1e1b4b;
-      border-bottom: 1.5px solid #1e1b4b;
+      border-left: 1.2px solid #1e1b4b;
+      border-right: 1.2px solid #1e1b4b;
+      border-bottom: 1.2px solid #1e1b4b;
       background-color: rgba(255, 255, 255, 0.25);
     }
     .bottom-left-panel {
       width: 60%;
-      border-right: 1.5px solid #1e1b4b;
-      padding: 10px 12px;
+      border-right: 1.2px solid #1e1b4b;
+      padding: 6px 8px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -416,44 +416,44 @@ const generateBillHtml = (bill) => {
     /* Memo Box */
     .memo-card {
       border: 1px solid #1e1b4b;
-      border-radius: 5px;
-      padding: 6px 8px;
+      border-radius: 4px;
+      padding: 4px 6px;
       background-color: #fdf2f8;
-      margin-bottom: 8px;
+      margin-bottom: 5px;
     }
     .memo-line-row {
       display: flex;
       align-items: baseline;
-      margin-bottom: 5px;
-      font-size: 11px;
+      margin-bottom: 3px;
+      font-size: 9.5px;
     }
     .memo-line-row:last-child {
       margin-bottom: 0;
     }
     .memo-line-label {
-      width: 75px;
+      width: 65px;
       font-weight: 700;
       color: #1e1b4b;
     }
     .memo-fill-line {
       flex: 1;
       border-bottom: 1px solid #1e1b4b;
-      height: 12px;
+      height: 10px;
     }
 
     /* Bank Card */
     .bank-card {
       border: 1px solid #1e1b4b;
-      border-radius: 5px;
-      padding: 6px 8px;
+      border-radius: 4px;
+      padding: 4px 6px;
       background-color: #fdf2f8;
-      font-size: 11px;
-      line-height: 1.4;
+      font-size: 9px;
+      line-height: 1.28;
     }
     .bank-reverse-title {
       font-weight: 800;
       color: #1e1b4b;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
 
     /* Totals Summary Table */
@@ -462,14 +462,14 @@ const generateBillHtml = (bill) => {
       border-collapse: collapse;
     }
     .totals-grid td {
-      padding: 6px 8px;
-      font-size: 12px;
+      padding: 4px 6px;
+      font-size: 10px;
       border-bottom: 1px solid #1e1b4b;
     }
     .t-label-col {
       font-weight: 700;
       color: #1e1b4b;
-      border-right: 1.5px solid #1e1b4b;
+      border-right: 1.2px solid #1e1b4b;
       width: 50%;
     }
     .t-val-col {
@@ -483,28 +483,28 @@ const generateBillHtml = (bill) => {
     }
     .grand-total-highlight td {
       color: #ffffff !important;
-      font-size: 14px;
+      font-size: 11.5px;
       font-weight: 900;
-      padding: 9px 8px;
+      padding: 6px 6px;
       border-bottom: none;
     }
 
     /* Signatures Footer */
     .footer-section {
-      margin-top: 12px;
-      padding: 10px 10px 0 10px;
+      margin-top: 8px;
+      padding: 6px 6px 0 6px;
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
     }
     .footer-left-info {
-      font-size: 12px;
-      line-height: 1.4;
+      font-size: 9.5px;
+      line-height: 1.35;
       font-weight: 700;
     }
     .receiver-sign-box {
-      margin-top: 40px;
-      font-size: 12px;
+      margin-top: 25px;
+      font-size: 10px;
       font-weight: 800;
       color: #1e1b4b;
     }
@@ -512,13 +512,13 @@ const generateBillHtml = (bill) => {
       text-align: right;
     }
     .for-sign-title {
-      font-size: 13px;
+      font-size: 10.5px;
       font-weight: 800;
       color: #1e1b4b;
     }
     .authorized-sign-box {
-      margin-top: 40px;
-      font-size: 12px;
+      margin-top: 25px;
+      font-size: 10px;
       font-weight: 800;
       color: #1e1b4b;
     }
