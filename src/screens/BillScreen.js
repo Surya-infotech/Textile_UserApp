@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -973,9 +973,6 @@ export default function BillScreen({ navigation }) {
   const calculateGrossTotal = () => {
     return items.reduce((sum, it) => sum + (parseFloat(it.amount) || 0), 0);
   };
-
-  // Backward-compatible alias
-  const calculateSubtotal = calculateGrossTotal;
 
   const calculateDiscountAmount = (grossTotal) => {
     const discPercent = parseFloat(formData.billBookDiscount) || 0;
@@ -2919,44 +2916,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     flex: 1,
-  },
-  calendarHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  calendarIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#EEF2FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  calendarTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  calendarSelectedText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#4F46E5',
-    marginTop: 1,
-  },
-  todayQuickPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  todayQuickPillText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#4F46E5',
   },
   calendarCloseBtn: {
     width: 28,
