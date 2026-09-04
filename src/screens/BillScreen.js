@@ -534,7 +534,7 @@ const generateBillHtml = (bill, billBooks = []) => {
       font-weight: 700;
     }
     .receiver-sign-box {
-      margin-top: 22px;
+      margin-top: 28px;
       font-size: 11.5px;
       font-weight: 800;
       color: #0f172a;
@@ -548,7 +548,7 @@ const generateBillHtml = (bill, billBooks = []) => {
       color: #0f172a;
     }
     .authorized-sign-box {
-      margin-top: 22px;
+      margin-top: 42px;
       font-size: 11.5px;
       font-weight: 800;
       color: #0f172a;
