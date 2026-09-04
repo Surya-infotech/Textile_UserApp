@@ -199,8 +199,8 @@ const generateBillHtml = (bill, billBooks = []) => {
       ? parseFloat(bill.totalAmount) || 0
       : Math.round((taxableTotal + totalTaxes) * 100) / 100;
 
-  // Render at least 12 rows to simulate full pre-printed invoice book pad
-  const minRows = 12;
+  // Render at least 15 rows to simulate full pre-printed invoice book pad on A4
+  const minRows = 20;
   const emptyRowsCount = Math.max(0, minRows - items.length);
   const emptyRows = Array.from({ length: emptyRowsCount });
 
@@ -232,8 +232,8 @@ const generateBillHtml = (bill, billBooks = []) => {
   <title>Invoice - ${bill.billNo || 'Bill'}</title>
   <style>
     @page {
-      size: A5 portrait;
-      margin: 3.5mm;
+      size: A4 portrait;
+      margin: 6mm;
     }
     * {
       box-sizing: border-box;
@@ -246,13 +246,13 @@ const generateBillHtml = (bill, billBooks = []) => {
       background-color: #ffffff; /* Clean White Paper */
       color: #0f172a; /* Deep Charcoal / Slate Ink */
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 10.5px;
-      line-height: 1.2;
+      font-size: 12.5px;
+      line-height: 1.3;
     }
     .bill-wrapper {
       width: 100%;
       border: 2px solid #0f172a;
-      padding: 6px 8px 8px 8px;
+      padding: 8px 12px 10px 12px;
       background-color: #ffffff;
       display: flex;
       flex-direction: column;
@@ -262,91 +262,91 @@ const generateBillHtml = (bill, billBooks = []) => {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1.2px solid #0f172a;
-      padding-bottom: 3px;
-      margin-bottom: 4px;
+      border-bottom: 1.5px solid #0f172a;
+      padding-bottom: 5px;
+      margin-bottom: 6px;
     }
     .tax-badge {
       background-color: #0f172a;
       color: #ffffff;
-      font-size: 9px;
+      font-size: 11px;
       font-weight: 800;
-      padding: 2px 6px;
+      padding: 3px 8px;
       border-radius: 3px;
       letter-spacing: 0.5px;
     }
     .slogan-box {
       text-align: center;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 800;
       color: #0f172a;
-      line-height: 1.15;
+      line-height: 1.2;
     }
     .slogan-sub {
-      font-size: 8.5px;
+      font-size: 10.5px;
       font-weight: 700;
       color: #334155;
     }
     .mobile-box {
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 800;
       color: #0f172a;
       text-align: right;
-      min-width: 80px;
+      min-width: 90px;
     }
 
     /* Firm Header */
     .firm-header-section {
       text-align: center;
-      margin-bottom: 5px;
+      margin-bottom: 7px;
     }
     .firm-title {
-      font-size: 20px;
+      font-size: 26px;
       font-weight: 900;
       color: #0f172a;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.4px;
       margin: 0;
-      line-height: 1.15;
+      line-height: 1.2;
     }
     .firm-tagline {
-      font-size: 11px;
+      font-size: 13px;
       font-style: italic;
       font-family: 'Times New Roman', Times, serif;
       font-weight: 700;
       color: #334155;
-      margin-top: 1px;
+      margin-top: 2px;
     }
     .firm-address {
-      font-size: 9.5px;
+      font-size: 11.5px;
       font-weight: 600;
       color: #334155;
-      margin-top: 1px;
+      margin-top: 2px;
     }
 
     /* Customer & Invoice Details Box */
     .customer-box {
-      border: 1.2px solid #0f172a;
-      border-radius: 5px;
-      padding: 5px 7px;
+      border: 1.5px solid #0f172a;
+      border-radius: 6px;
+      padding: 7px 10px;
       display: flex;
       justify-content: space-between;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
       background-color: #f8fafc;
     }
     .customer-col-left {
       width: 65%;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
     .customer-col-right {
       width: 32%;
-      border-left: 1.2px solid #0f172a;
-      padding-left: 8px;
+      border-left: 1.5px solid #0f172a;
+      padding-left: 12px;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 5px;
+      gap: 7px;
     }
     .detail-row {
       display: flex;
@@ -354,17 +354,17 @@ const generateBillHtml = (bill, billBooks = []) => {
     }
     .detail-label {
       font-weight: 800;
-      font-size: 10.5px;
+      font-size: 12.5px;
       color: #0f172a;
       white-space: nowrap;
     }
     .detail-line-val {
       flex: 1;
       border-bottom: 1px dotted #0f172a;
-      margin-left: 5px;
-      padding-left: 2px;
+      margin-left: 6px;
+      padding-left: 3px;
       font-weight: 800;
-      font-size: 11px;
+      font-size: 13px;
       color: #0f172a;
     }
 
@@ -372,14 +372,17 @@ const generateBillHtml = (bill, billBooks = []) => {
     .items-table {
       width: 100%;
       border-collapse: collapse;
-      border: 1.2px solid #0f172a;
+      border: 1.5px solid #0f172a;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 9px;
     }
     .items-table th {
       background-color: #0f172a;
       color: #ffffff;
       font-weight: 800;
-      font-size: 9.5px;
-      padding: 3.5px 3px;
+      font-size: 11.5px;
+      padding: 5px 4px;
       border-right: 1px solid #ffffff;
       text-align: center;
     }
@@ -387,12 +390,12 @@ const generateBillHtml = (bill, billBooks = []) => {
       border-right: none;
     }
     .items-table td {
-      padding: 2.5px 4px;
-      font-size: 10px;
-      border-right: 1.2px solid #0f172a;
+      padding: 4px 5px;
+      font-size: 12px;
+      border-right: 1.5px solid #0f172a;
       border-bottom: 1px solid #e2e8f0;
       vertical-align: top;
-      height: 16.5px;
+      height: 20px;
     }
     .items-table td:last-child {
       border-right: none;
@@ -404,8 +407,8 @@ const generateBillHtml = (bill, billBooks = []) => {
       font-weight: 700;
       word-break: break-word;
       white-space: normal;
-      line-height: 1.3;
-      padding: 2.5px 5px !important;
+      line-height: 1.35;
+      padding: 4px 8px !important;
     }
     .col-hsn { width: 11%; text-align: center; font-weight: 600; }
     .col-psc { width: 9%; text-align: center; font-weight: 700; }
@@ -415,15 +418,15 @@ const generateBillHtml = (bill, billBooks = []) => {
     /* Bottom Section */
     .bottom-split {
       display: flex;
-      border-left: 1.2px solid #0f172a;
-      border-right: 1.2px solid #0f172a;
-      border-bottom: 1.2px solid #0f172a;
+      border: 1.5px solid #0f172a;
+      border-radius: 6px;
       background-color: #ffffff;
+      overflow: hidden;
     }
     .bottom-left-panel {
       width: 60%;
-      border-right: 1.2px solid #0f172a;
-      padding: 5px 7px;
+      border-right: 1.5px solid #0f172a;
+      padding: 7px 10px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -436,43 +439,44 @@ const generateBillHtml = (bill, billBooks = []) => {
     .memo-card {
       border: 1px solid #0f172a;
       border-radius: 4px;
-      padding: 3px 5px;
+      padding: 5px 7px;
       background-color: #f8fafc;
-      margin-bottom: 4px;
+      margin-bottom: 5px;
     }
     .memo-line-row {
       display: flex;
       align-items: baseline;
-      margin-bottom: 2px;
-      font-size: 9px;
+      margin-bottom: 3px;
+      font-size: 11px;
     }
     .memo-line-row:last-child {
       margin-bottom: 0;
     }
     .memo-line-label {
-      width: 60px;
+      width: 70px;
       font-weight: 700;
       color: #0f172a;
     }
     .memo-fill-line {
       flex: 1;
       border-bottom: 1px solid #0f172a;
-      height: 9px;
+      height: 11px;
     }
 
     /* Bank Card */
     .bank-card {
       border: 1px solid #0f172a;
       border-radius: 4px;
-      padding: 3px 5px;
+      padding: 5px 7px;
       background-color: #f8fafc;
-      font-size: 8.5px;
-      line-height: 1.25;
+      font-size: 10.5px;
+      line-height: 1.35;
     }
     .bank-reverse-title {
       font-weight: 800;
       color: #0f172a;
-      margin-bottom: 1px;
+      margin-bottom: 2px;
+      font-size: 11px;
     }
 
     /* Totals Summary Table */
@@ -481,14 +485,14 @@ const generateBillHtml = (bill, billBooks = []) => {
       border-collapse: collapse;
     }
     .totals-grid td {
-      padding: 3px 5px;
-      font-size: 9.5px;
+      padding: 4px 7px;
+      font-size: 11.5px;
       border-bottom: 1px solid #0f172a;
     }
     .t-label-col {
       font-weight: 700;
       color: #0f172a;
-      border-right: 1.2px solid #0f172a;
+      border-right: 1.5px solid #0f172a;
       width: 50%;
     }
     .t-val-col {
@@ -502,28 +506,28 @@ const generateBillHtml = (bill, billBooks = []) => {
     }
     .grand-total-highlight td {
       color: #ffffff !important;
-      font-size: 11px;
+      font-size: 13px;
       font-weight: 900;
-      padding: 5px 5px;
+      padding: 6px 7px;
       border-bottom: none;
     }
 
     /* Signatures Footer */
     .footer-section {
-      margin-top: 6px;
-      padding: 4px 6px 0 6px;
+      margin-top: 8px;
+      padding: 6px 8px 0 8px;
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
     }
     .footer-left-info {
-      font-size: 9px;
-      line-height: 1.3;
+      font-size: 11px;
+      line-height: 1.4;
       font-weight: 700;
     }
     .receiver-sign-box {
-      margin-top: 18px;
-      font-size: 9.5px;
+      margin-top: 22px;
+      font-size: 11.5px;
       font-weight: 800;
       color: #0f172a;
     }
@@ -531,13 +535,13 @@ const generateBillHtml = (bill, billBooks = []) => {
       text-align: right;
     }
     .for-sign-title {
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 800;
       color: #0f172a;
     }
     .authorized-sign-box {
-      margin-top: 18px;
-      font-size: 9.5px;
+      margin-top: 22px;
+      font-size: 11.5px;
       font-weight: 800;
       color: #0f172a;
     }
