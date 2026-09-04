@@ -11,10 +11,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 const BILLS_STORAGE_KEY = '@textile_bills_list';
 const BILL_BOOKS_STORAGE_KEY = '@textile_bill_books';
@@ -142,6 +145,555 @@ const getCalendarWeeks = (year, month) => {
   return weeks;
 };
 
+// Helper to format currency for PDF
+const formatCurrencyPdf = (num) => {
+  return (parseFloat(num) || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+// Helper to format mobile number with +91 and spacing like in photo
+const formatMobileDisplay = (num) => {
+  if (!num) return '+91 99987 12204';
+  const digits = String(num).replace(/[^\d]/g, '');
+  let phone = digits;
+  if (phone.startsWith('91') && phone.length === 12) phone = phone.slice(2);
+  if (phone.length === 10) return `+91 ${phone.slice(0, 5)} ${phone.slice(5)}`;
+  return num;
+};
+
+// Generates an authentic A4 PDF HTML template identical to the user's pink tax invoice bill book photo
+const generateBillHtml = (bill) => {
+  const items = Array.isArray(bill.items) ? bill.items : [];
+  const taxes = Array.isArray(bill.taxes) ? bill.taxes : [];
+
+  const grossTotal =
+    bill.grossTotal !== undefined
+      ? parseFloat(bill.grossTotal) || 0
+      : items.reduce((sum, it) => sum + (parseFloat(it.amount) || 0), 0);
+
+  const discPercent = parseFloat(bill.billBookDiscount) || 0;
+  const discountAmount =
+    bill.discountAmount !== undefined
+      ? parseFloat(bill.discountAmount) || 0
+      : discPercent > 0
+      ? Math.round(((grossTotal * discPercent) / 100) * 100) / 100
+      : 0;
+
+  const taxableTotal =
+    bill.taxableAmount !== undefined
+      ? parseFloat(bill.taxableAmount) || 0
+      : Math.max(0, Math.round((grossTotal - discountAmount) * 100) / 100);
+
+  const totalTaxes =
+    bill.totalTaxes !== undefined
+      ? parseFloat(bill.totalTaxes) || 0
+      : taxes.reduce((sum, t) => {
+          const rate = parseFloat(t.taxRate) || 0;
+          return sum + (taxableTotal * rate) / 100;
+        }, 0);
+
+  const grandTotal =
+    bill.totalAmount !== undefined
+      ? parseFloat(bill.totalAmount) || 0
+      : Math.round((taxableTotal + totalTaxes) * 100) / 100;
+
+  // Render at least 11 rows to simulate pre-printed invoice book pad in photo
+  const minRows = 11;
+  const emptyRowsCount = Math.max(0, minRows - items.length);
+  const emptyRows = Array.from({ length: emptyRowsCount });
+
+  const firmName = bill.billBookName || 'Nareshbhai Laljibhai Dholakiya';
+  const firmAddress =
+    bill.billBookAddress ||
+    'Plot No-20, Angan Row House, Sayan Road Amroli, Surat';
+  const mobileNo = formatMobileDisplay(
+    bill.billBookMobileNumber || bill.mobileNumber
+  );
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice - ${bill.billNo || 'Bill'}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 8mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #fce7f3; /* Authentic Pink Receipt Paper */
+      color: #1e1b4b; /* Deep Indigo / Navy Ink */
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+      line-height: 1.25;
+    }
+    .bill-wrapper {
+      width: 100%;
+      min-height: 275mm;
+      border: 2.5px solid #1e1b4b;
+      padding: 12px 14px 14px 14px;
+      background-color: #fce7f3;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    /* Top utility row */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1.5px solid #1e1b4b;
+      padding-bottom: 5px;
+      margin-bottom: 8px;
+    }
+    .tax-badge {
+      background-color: #1e1b4b;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+    .slogan-box {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: #1e1b4b;
+      line-height: 1.2;
+    }
+    .slogan-sub {
+      font-size: 11px;
+      font-weight: 700;
+      color: #312e81;
+    }
+    .mobile-box {
+      font-size: 12px;
+      font-weight: 800;
+      color: #1e1b4b;
+    }
+
+    /* Firm Header */
+    .firm-header-section {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .firm-title {
+      font-size: 27px;
+      font-weight: 900;
+      color: #1e1b4b;
+      letter-spacing: 0.4px;
+      margin: 0;
+      line-height: 1.2;
+    }
+    .firm-tagline {
+      font-size: 14px;
+      font-style: italic;
+      font-family: 'Times New Roman', Times, serif;
+      font-weight: 700;
+      color: #312e81;
+      margin-top: 3px;
+    }
+    .firm-address {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1e1b4b;
+      margin-top: 4px;
+    }
+
+    /* Customer & Invoice Details Box */
+    .customer-box {
+      border: 1.5px solid #1e1b4b;
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+    .customer-col-left {
+      width: 65%;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .customer-col-right {
+      width: 32%;
+      border-left: 1.5px solid #1e1b4b;
+      padding-left: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+    }
+    .detail-row {
+      display: flex;
+      align-items: baseline;
+    }
+    .detail-label {
+      font-weight: 800;
+      font-size: 13px;
+      color: #1e1b4b;
+      white-space: nowrap;
+    }
+    .detail-line-val {
+      flex: 1;
+      border-bottom: 1px dotted #1e1b4b;
+      margin-left: 8px;
+      padding-left: 4px;
+      font-weight: 800;
+      font-size: 14px;
+      color: #0f172a;
+    }
+
+    /* Items Table */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1.5px solid #1e1b4b;
+    }
+    .items-table th {
+      background-color: #1e1b4b;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 12px;
+      padding: 7px 4px;
+      border-right: 1px solid #ffffff;
+      text-align: center;
+    }
+    .items-table th:last-child {
+      border-right: none;
+    }
+    .items-table td {
+      padding: 5px 6px;
+      font-size: 12px;
+      border-right: 1.5px solid #1e1b4b;
+      border-bottom: 1px dotted #c7d2fe;
+      vertical-align: middle;
+      height: 25px;
+    }
+    .items-table td:last-child {
+      border-right: none;
+    }
+    .col-no { width: 6%; text-align: center; font-weight: 700; }
+    .col-desc { width: 46%; text-align: left; font-weight: 700; }
+    .col-hsn { width: 14%; text-align: center; font-weight: 600; }
+    .col-psc { width: 10%; text-align: center; font-weight: 700; }
+    .col-rate { width: 11%; text-align: right; font-weight: 700; }
+    .col-amount { width: 13%; text-align: right; font-weight: 800; }
+
+    /* Bottom Section */
+    .bottom-split {
+      display: flex;
+      border-left: 1.5px solid #1e1b4b;
+      border-right: 1.5px solid #1e1b4b;
+      border-bottom: 1.5px solid #1e1b4b;
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+    .bottom-left-panel {
+      width: 60%;
+      border-right: 1.5px solid #1e1b4b;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .bottom-right-panel {
+      width: 40%;
+    }
+
+    /* Memo Box */
+    .memo-card {
+      border: 1px solid #1e1b4b;
+      border-radius: 5px;
+      padding: 6px 8px;
+      background-color: #fdf2f8;
+      margin-bottom: 8px;
+    }
+    .memo-line-row {
+      display: flex;
+      align-items: baseline;
+      margin-bottom: 5px;
+      font-size: 11px;
+    }
+    .memo-line-row:last-child {
+      margin-bottom: 0;
+    }
+    .memo-line-label {
+      width: 75px;
+      font-weight: 700;
+      color: #1e1b4b;
+    }
+    .memo-fill-line {
+      flex: 1;
+      border-bottom: 1px solid #1e1b4b;
+      height: 12px;
+    }
+
+    /* Bank Card */
+    .bank-card {
+      border: 1px solid #1e1b4b;
+      border-radius: 5px;
+      padding: 6px 8px;
+      background-color: #fdf2f8;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .bank-reverse-title {
+      font-weight: 800;
+      color: #1e1b4b;
+      margin-bottom: 3px;
+    }
+
+    /* Totals Summary Table */
+    .totals-grid {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .totals-grid td {
+      padding: 6px 8px;
+      font-size: 12px;
+      border-bottom: 1px solid #1e1b4b;
+    }
+    .t-label-col {
+      font-weight: 700;
+      color: #1e1b4b;
+      border-right: 1.5px solid #1e1b4b;
+      width: 50%;
+    }
+    .t-val-col {
+      font-weight: 800;
+      text-align: right;
+      width: 50%;
+      color: #0f172a;
+    }
+    .grand-total-highlight {
+      background-color: #1e1b4b;
+    }
+    .grand-total-highlight td {
+      color: #ffffff !important;
+      font-size: 14px;
+      font-weight: 900;
+      padding: 9px 8px;
+      border-bottom: none;
+    }
+
+    /* Signatures Footer */
+    .footer-section {
+      margin-top: 12px;
+      padding: 10px 10px 0 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .footer-left-info {
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 700;
+    }
+    .receiver-sign-box {
+      margin-top: 40px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #1e1b4b;
+    }
+    .footer-right-sign {
+      text-align: right;
+    }
+    .for-sign-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #1e1b4b;
+    }
+    .authorized-sign-box {
+      margin-top: 40px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #1e1b4b;
+    }
+  </style>
+</head>
+<body>
+  <div class="bill-wrapper">
+    <div>
+      <!-- Top Utility Row -->
+      <div class="top-bar">
+        <div class="tax-badge">TAX INVOICE</div>
+        <div class="slogan-box">
+          || Shree Ganeshay Namah ||<br />
+          <span class="slogan-sub">Jay Butbhavani Maa</span>
+        </div>
+        <div class="mobile-box">
+          Mo. ${mobileNo}
+        </div>
+      </div>
+
+      <!-- Firm Header -->
+      <div class="firm-header-section">
+        <h1 class="firm-title">${firmName}</h1>
+        <div class="firm-tagline">All Type Of Handwork</div>
+        <div class="firm-address">${firmAddress}</div>
+      </div>
+
+      <!-- Customer & Invoice Info Box -->
+      <div class="customer-box">
+        <div class="customer-col-left">
+          <div class="detail-row">
+            <span class="detail-label">M/s.</span>
+            <span class="detail-line-val">${bill.partyName || ''}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">P.Ch.No.</span>
+            <span class="detail-line-val">${bill.pChNo || '—'}</span>
+          </div>
+          <div class="detail-row" style="margin-bottom: 0;">
+            <span class="detail-label">GSTIN :</span>
+            <span class="detail-line-val" style="letter-spacing: 0.5px;">${bill.partyGstin || '—'}</span>
+          </div>
+        </div>
+        <div class="customer-col-right">
+          <div class="detail-row">
+            <span class="detail-label">Bill No. :</span>
+            <span class="detail-line-val" style="border-bottom: 1px solid #1e1b4b;">${bill.billNo || ''}</span>
+          </div>
+          <div class="detail-row" style="margin-bottom: 0;">
+            <span class="detail-label">Date :</span>
+            <span class="detail-line-val" style="border-bottom: 1px solid #1e1b4b;">${bill.date || ''}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Items Grid Table -->
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th class="col-no">No.</th>
+            <th class="col-desc">Description</th>
+            <th class="col-hsn">HSN CODE</th>
+            <th class="col-psc">Psc.</th>
+            <th class="col-rate">Rate</th>
+            <th class="col-amount">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map((it, idx) => `
+            <tr>
+              <td class="col-no">(${idx + 1})</td>
+              <td class="col-desc">${it.description || 'Item'}</td>
+              <td class="col-hsn">${it.hsnCode || '—'}</td>
+              <td class="col-psc">${it.psc || '—'}</td>
+              <td class="col-rate">${it.rate ? `₹${it.rate}` : '—'}</td>
+              <td class="col-amount">₹${formatCurrencyPdf(it.amount)}</td>
+            </tr>
+          `).join('')}
+          ${emptyRows.map(() => `
+            <tr>
+              <td class="col-no">&nbsp;</td>
+              <td class="col-desc">&nbsp;</td>
+              <td class="col-hsn">&nbsp;</td>
+              <td class="col-psc">&nbsp;</td>
+              <td class="col-rate">&nbsp;</td>
+              <td class="col-amount">&nbsp;</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <!-- Bottom Split Section -->
+      <div class="bottom-split">
+        <!-- Left Panel -->
+        <div class="bottom-left-panel">
+          <div class="memo-card">
+            <div class="memo-line-row">
+              <span class="memo-line-label">Date :</span>
+              <span class="memo-fill-line"></span>
+            </div>
+            <div class="memo-line-row">
+              <span class="memo-line-label">Bill No. :</span>
+              <span class="memo-fill-line"></span>
+            </div>
+            <div class="memo-line-row">
+              <span class="memo-line-label">Rs. :</span>
+              <span class="memo-fill-line"></span>
+            </div>
+            <div class="memo-line-row">
+              <span class="memo-line-label">Cheque No. :</span>
+              <span class="memo-fill-line"></span>
+            </div>
+          </div>
+
+          <div class="bank-card">
+            <div class="bank-reverse-title">GST Reverse Charge</div>
+            ${bill.billBookBankName ? `<div><b>Bank Name:</b> ${bill.billBookBankName}</div>` : ''}
+            ${bill.billBookAccountNo ? `<div><b>A/c No.:</b> ${bill.billBookAccountNo}&nbsp;&nbsp;&nbsp;&nbsp;<b>IFSC :</b> ${bill.billBookIfsc || '—'}</div>` : ''}
+          </div>
+        </div>
+
+        <!-- Right Panel (Totals Table) -->
+        <div class="bottom-right-panel">
+          <table class="totals-grid">
+            <tr>
+              <td class="t-label-col">GROSS TOTAL</td>
+              <td class="t-val-col">₹${formatCurrencyPdf(grossTotal)}</td>
+            </tr>
+            ${discPercent > 0 ? `
+              <tr>
+                <td class="t-label-col" style="color: #047857;">Discount @${discPercent}%</td>
+                <td class="t-val-col" style="color: #047857;">-₹${formatCurrencyPdf(discountAmount)}</td>
+              </tr>
+            ` : ''}
+            <tr>
+              <td class="t-label-col" style="font-weight: 800; background-color: rgba(199, 210, 254, 0.4);">TOTAL</td>
+              <td class="t-val-col" style="font-weight: 800; background-color: rgba(199, 210, 254, 0.4);">₹${formatCurrencyPdf(taxableTotal)}</td>
+            </tr>
+            ${taxes.map((t) => {
+              const rate = parseFloat(t.taxRate) || 0;
+              const taxAmt = Math.round(((taxableTotal * rate) / 100) * 100) / 100;
+              return `
+                <tr>
+                  <td class="t-label-col">${t.taxName || 'Tax'}@${t.taxRate || 0}%</td>
+                  <td class="t-val-col">+₹${formatCurrencyPdf(taxAmt)}</td>
+                </tr>
+              `;
+            }).join('')}
+            <tr class="grand-total-highlight">
+              <td class="t-label-col" style="border-right: 1px solid #ffffff;">G. TOTAL</td>
+              <td class="t-val-col">₹${formatCurrencyPdf(grandTotal)}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signatures Footer -->
+    <div class="footer-section">
+      <div class="footer-left-info">
+        <div><b>GSTIN :</b> ${bill.billBookGstin || '—'}</div>
+        <div><b>PAN NO.</b> ${bill.billBookPan || '—'}</div>
+        <div class="receiver-sign-box">Receiver's Sign.</div>
+      </div>
+      <div class="footer-right-sign">
+        <div class="for-sign-title">For, ${firmName}</div>
+        <div class="authorized-sign-box">Authorized Signatory</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+};
+
 export default function BillScreen({ navigation }) {
   const [bills, setBills] = useState([]);
   const [billBooks, setBillBooks] = useState([]);
@@ -149,6 +701,7 @@ export default function BillScreen({ navigation }) {
   const [isBookPickerVisible, setIsBookPickerVisible] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [generatingPdfId, setGeneratingPdfId] = useState(null);
 
   // Interactive Calendar Date Picker State
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
@@ -315,6 +868,7 @@ export default function BillScreen({ navigation }) {
       billBookId: book.id,
       billBookName: book.billBookName || '',
       billBookAddress: book.address || '',
+      billBookMobileNumber: book.mobileNumber || '',
       billBookGstin: book.gstin || '',
       billBookPan: book.panNo || '',
       billBookDiscount: book.discount || '',
@@ -434,6 +988,7 @@ export default function BillScreen({ navigation }) {
       billBookId: '',
       billBookName: '',
       billBookAddress: '',
+      billBookMobileNumber: '',
       billBookGstin: '',
       billBookPan: '',
       billBookDiscount: '',
@@ -471,6 +1026,7 @@ export default function BillScreen({ navigation }) {
       id: bill.billBookId || '',
       billBookName: bill.billBookName || '',
       address: bill.billBookAddress || '',
+      mobileNumber: bill.billBookMobileNumber || '',
       gstin: bill.billBookGstin || '',
       panNo: bill.billBookPan || '',
       discount: bill.billBookDiscount || '',
@@ -495,6 +1051,7 @@ export default function BillScreen({ navigation }) {
       billBookId: bill.billBookId || '',
       billBookName: bill.billBookName || '',
       billBookAddress: bill.billBookAddress || '',
+      billBookMobileNumber: bill.billBookMobileNumber || matchedBook.mobileNumber || '',
       billBookGstin: bill.billBookGstin || '',
       billBookPan: bill.billBookPan || '',
       billBookDiscount: bill.billBookDiscount || '',
@@ -598,6 +1155,9 @@ export default function BillScreen({ navigation }) {
       billBookId: formData.billBookId,
       billBookName: formData.billBookName.trim(),
       billBookAddress: formData.billBookAddress.trim(),
+      billBookMobileNumber: formData.billBookMobileNumber
+        ? formData.billBookMobileNumber.trim()
+        : selectedBillBook?.mobileNumber || '',
       billBookGstin: formData.billBookGstin.trim().toUpperCase(),
       billBookPan: formData.billBookPan.trim().toUpperCase(),
       billBookDiscount: formData.billBookDiscount.trim(),
@@ -641,7 +1201,7 @@ export default function BillScreen({ navigation }) {
   const handleDeleteBill = (id, billNo) => {
     Alert.alert(
       'Delete Bill',
-      `Are you sure you want to delete Bill "${billNo}"?`,
+      `Are you sure you want to delete Bill No. "${billNo || id}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -660,6 +1220,25 @@ export default function BillScreen({ navigation }) {
         },
       ]
     );
+  };
+
+  // PDF Generation & Download Handler (Native Save as PDF & Print)
+  const handleDownloadPdf = async (bill) => {
+    try {
+      setGeneratingPdfId(bill.id);
+      const html = generateBillHtml(bill);
+
+      // Open native Android & iOS Save as PDF / Print dialog
+      await Print.printAsync({ html });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      Alert.alert(
+        'PDF Generation Failed',
+        'Unable to open PDF preview. Please try again.'
+      );
+    } finally {
+      setGeneratingPdfId(null);
+    }
   };
 
   const grandTotalBilled = bills.reduce(
@@ -766,8 +1345,24 @@ export default function BillScreen({ navigation }) {
                   </Text>
                 </View>
 
-                {/* Edit & Delete Action Buttons */}
+                {/* PDF, Edit & Delete Action Buttons */}
                 <View style={styles.cardActionsGroup}>
+                  <TouchableOpacity
+                    style={styles.pdfBtn}
+                    onPress={() => handleDownloadPdf(bill)}
+                    activeOpacity={0.7}
+                    disabled={generatingPdfId === bill.id}
+                  >
+                    {generatingPdfId === bill.id ? (
+                      <ActivityIndicator size="small" color="#DC2626" />
+                    ) : (
+                      <>
+                        <Ionicons name="document-text-outline" size={15} color="#DC2626" />
+                        <Text style={styles.pdfBtnText}>PDF</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+
                   <TouchableOpacity
                     style={styles.editBtn}
                     onPress={() => handleOpenEditModal(bill)}
@@ -869,13 +1464,24 @@ export default function BillScreen({ navigation }) {
                 </View>
               ) : null}
 
-              {/* Card Footer: Total Amount */}
+              {/* Card Footer: Total Amount & Download PDF */}
               <View style={styles.cardFooter}>
-                <View>
+                <View style={styles.cardFooterLeft}>
                   <Text style={styles.totalItemsLabel}>
                     {bill.items ? bill.items.length : 0} items
                     {bill.totalPsc ? ` • ${bill.totalPsc} psc` : ''}
                   </Text>
+                  <TouchableOpacity
+                    style={styles.footerPdfBtn}
+                    onPress={() => handleDownloadPdf(bill)}
+                    activeOpacity={0.7}
+                    disabled={generatingPdfId === bill.id}
+                  >
+                    <Ionicons name="cloud-download-outline" size={13} color="#DC2626" />
+                    <Text style={styles.footerPdfBtnText}>
+                      {generatingPdfId === bill.id ? 'Generating...' : 'Download PDF'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
                 <View style={styles.totalAmountWrap}>
                   <Text style={styles.totalAmountLabel}>Grand Total:</Text>
@@ -1704,6 +2310,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
+  pdfBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  pdfBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
   editBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1865,6 +2487,28 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
+  },
+  cardFooterLeft: {
+    flexDirection: 'column',
+    gap: 4,
+    justifyContent: 'center',
+  },
+  footerPdfBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  footerPdfBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#E11D48',
   },
   totalItemsLabel: {
     fontSize: 12,
