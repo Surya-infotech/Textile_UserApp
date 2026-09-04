@@ -8,6 +8,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import HomeScreen from './src/screens/HomeScreen';
 import BillScreen from './src/screens/BillScreen';
+import BillBookScreen from './src/screens/BillBookScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -51,6 +52,8 @@ function MainTabs() {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Bill') {
             iconName = focused ? 'receipt' : 'receipt-outline';
+          } else if (route.name === 'BillBook') {
+            iconName = focused ? 'book' : 'book-outline';
           }
 
           return (
@@ -73,6 +76,13 @@ function MainTabs() {
         component={BillScreen}
         options={{
           tabBarLabel: 'Bills',
+        }}
+      />
+      <Tab.Screen
+        name="BillBook"
+        component={BillBookScreen}
+        options={{
+          tabBarLabel: 'Bill Book',
         }}
       />
     </Tab.Navigator>

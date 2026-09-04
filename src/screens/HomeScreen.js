@@ -73,12 +73,16 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.actionSubtitle}>Check pending & paid</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.actionCard}
+            activeOpacity={0.7}
+            onPress={() => navigation?.navigate('BillBook')}
+          >
             <View style={[styles.actionIconWrap, { backgroundColor: '#ECFDF5' }]}>
-              <Ionicons name="cube-outline" size={24} color="#059669" />
+              <Ionicons name="book-outline" size={24} color="#059669" />
             </View>
-            <Text style={styles.actionTitle}>Fabric Stock</Text>
-            <Text style={styles.actionSubtitle}>Inventory status</Text>
+            <Text style={styles.actionTitle}>Bill Book</Text>
+            <Text style={styles.actionSubtitle}>Khata & ledgers</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionCard} activeOpacity={0.7}>
