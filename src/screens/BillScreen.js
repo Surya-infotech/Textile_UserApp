@@ -178,8 +178,8 @@ const generateBillHtml = (bill, billBooks = []) => {
     bill.discountAmount !== undefined
       ? parseFloat(bill.discountAmount) || 0
       : discPercent > 0
-      ? Math.round(((grossTotal * discPercent) / 100) * 100) / 100
-      : 0;
+        ? Math.round(((grossTotal * discPercent) / 100) * 100) / 100
+        : 0;
 
   const taxableTotal =
     bill.taxableAmount !== undefined
@@ -190,9 +190,9 @@ const generateBillHtml = (bill, billBooks = []) => {
     bill.totalTaxes !== undefined
       ? parseFloat(bill.totalTaxes) || 0
       : taxes.reduce((sum, t) => {
-          const rate = parseFloat(t.taxRate) || 0;
-          return sum + (taxableTotal * rate) / 100;
-        }, 0);
+        const rate = parseFloat(t.taxRate) || 0;
+        return sum + (taxableTotal * rate) / 100;
+      }, 0);
 
   const grandTotal =
     bill.totalAmount !== undefined
@@ -233,26 +233,32 @@ const generateBillHtml = (bill, billBooks = []) => {
   <style>
     @page {
       size: A4 portrait;
-      margin: 6mm;
+      margin: 8mm 6mm;
     }
     * {
       box-sizing: border-box;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    body {
+    html, body {
+      height: 100%;
       margin: 0;
       padding: 0;
+    }
+    body {
       background-color: #ffffff; /* Clean White Paper */
       color: #0f172a; /* Deep Charcoal / Slate Ink */
       font-family: Arial, Helvetica, sans-serif;
       font-size: 12.5px;
       line-height: 1.3;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     .bill-wrapper {
       width: 100%;
       border: 2px solid #0f172a;
-      padding: 8px 12px 10px 12px;
+      padding: 10px 12px;
       background-color: #ffffff;
       display: flex;
       flex-direction: column;
@@ -373,8 +379,6 @@ const generateBillHtml = (bill, billBooks = []) => {
       width: 100%;
       border-collapse: collapse;
       border: 1.5px solid #0f172a;
-      border-radius: 6px;
-      overflow: hidden;
       margin-bottom: 9px;
     }
     .items-table th {
@@ -384,6 +388,7 @@ const generateBillHtml = (bill, billBooks = []) => {
       font-size: 11.5px;
       padding: 5px 4px;
       border-right: 1px solid #ffffff;
+      border-bottom: 1.5px solid #0f172a;
       text-align: center;
     }
     .items-table th:last-child {
@@ -393,12 +398,15 @@ const generateBillHtml = (bill, billBooks = []) => {
       padding: 4px 5px;
       font-size: 12px;
       border-right: 1.5px solid #0f172a;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid #cbd5e1;
       vertical-align: top;
       height: 20px;
     }
     .items-table td:last-child {
       border-right: none;
+    }
+    .items-table tbody tr:last-child td {
+      border-bottom: 1.5px solid #0f172a !important;
     }
     .col-no { width: 5%; text-align: center; font-weight: 700; }
     .col-desc {
@@ -681,15 +689,15 @@ const generateBillHtml = (bill, billBooks = []) => {
               <td class="t-val-col" style="font-weight: 800; background-color: #f1f5f9;">₹${formatCurrencyPdf(taxableTotal)}</td>
             </tr>
             ${taxes.map((t) => {
-              const rate = parseFloat(t.taxRate) || 0;
-              const taxAmt = Math.round(((taxableTotal * rate) / 100) * 100) / 100;
-              return `
+    const rate = parseFloat(t.taxRate) || 0;
+    const taxAmt = Math.round(((taxableTotal * rate) / 100) * 100) / 100;
+    return `
                 <tr>
                   <td class="t-label-col">${t.taxName || 'Tax'}@${t.taxRate || 0}%</td>
                   <td class="t-val-col">+₹${formatCurrencyPdf(taxAmt)}</td>
                 </tr>
               `;
-            }).join('')}
+  }).join('')}
             <tr class="grand-total-highlight">
               <td class="t-label-col" style="border-right: 1px solid #ffffff;">G. TOTAL</td>
               <td class="t-val-col">₹${formatCurrencyPdf(grandTotal)}</td>
