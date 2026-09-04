@@ -1,0 +1,19 @@
+npm install -g expo-cli
+expo init project name
+
+npm install @react-native-async-storage/async-storage
+npx expo install expo-image
+
+npm install -g eas-cli
+
+eas credentials
+eas build:configure
+eas build --platform android --profile preview
+eas build --platform android --profile development --local
+
+eas build --platform android --profile production --local
+
+eas build --platform android --profile production
+$env:EAS_SKIP_AUTO_FINGERPRINT=1; eas build --platform android --profile production --clear-cache
+
+"buildType": "app-bundle"
