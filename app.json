@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "UserApp",
-    "slug": "UserApp",
+    "name": "TextileApp",
+    "slug": "TextileApp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,7 +15,8 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "package": "com.dholakiyanexus.TextileApp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
