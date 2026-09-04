@@ -1471,10 +1471,7 @@ export default function BillScreen({ navigation }) {
                     {generatingPdfId === bill.id ? (
                       <ActivityIndicator size="small" color="#DC2626" />
                     ) : (
-                      <>
-                        <Ionicons name="share-social-outline" size={15} color="#DC2626" />
-                        <Text style={styles.pdfBtnText}>Share</Text>
-                      </>
+                      <Ionicons name="share-social-outline" size={16} color="#DC2626" />
                     )}
                   </TouchableOpacity>
 
@@ -1484,7 +1481,6 @@ export default function BillScreen({ navigation }) {
                     activeOpacity={0.7}
                   >
                     <Ionicons name="create-outline" size={16} color="#4F46E5" />
-                    <Text style={styles.editBtnText}>Edit</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -2542,34 +2538,22 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   pdfBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FECACA',
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-    borderRadius: 14,
-  },
-  pdfBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#DC2626',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   editBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#EEF2FF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    gap: 4,
-  },
-  editBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#4F46E5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteBtn: {
     width: 32,

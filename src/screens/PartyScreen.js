@@ -303,7 +303,6 @@ export default function PartyScreen() {
                     activeOpacity={0.7}
                   >
                     <Ionicons name="create-outline" size={16} color="#4F46E5" />
-                    <Text style={styles.editBtnText}>Edit</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -572,18 +571,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   editBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#EEF2FF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    gap: 4,
-  },
-  editBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#4F46E5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteBtn: {
     width: 32,
