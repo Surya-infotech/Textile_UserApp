@@ -586,10 +586,6 @@ const generateBillHtml = (bill, billBooks = []) => {
             <span class="detail-label">M/s.</span>
             <span class="detail-line-val">${bill.partyName || ''}</span>
           </div>
-          <div class="detail-row">
-            <span class="detail-label">P.Ch.No.</span>
-            <span class="detail-line-val">${bill.pChNo || '—'}</span>
-          </div>
           <div class="detail-row" style="margin-bottom: 0;">
             <span class="detail-label">GSTIN :</span>
             <span class="detail-line-val" style="letter-spacing: 0.5px;">${bill.partyGstin || '—'}</span>
@@ -1818,17 +1814,6 @@ export default function BillScreen({ navigation }) {
                 </View>
               </View>
 
-              {/* Field: P.Ch.No (Challan) */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>P.Ch.No. (Challan)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. PCH-882"
-                  placeholderTextColor="#94A3B8"
-                  value={formData.pChNo}
-                  onChangeText={(val) => handleInputChange('pChNo', val)}
-                />
-              </View>
 
               {/* STEP 3: MULTIPLE ITEM DETAILS */}
               <View style={styles.formSectionDivider}>
