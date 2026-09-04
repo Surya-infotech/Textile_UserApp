@@ -22,6 +22,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 
 const BILLS_STORAGE_KEY = '@textile_bills_list';
 const BILL_BOOKS_STORAGE_KEY = '@textile_bill_books';
+const PARTIES_STORAGE_KEY = '@textile_parties';
 
 const MONTH_NAMES = [
   'January',
@@ -729,8 +730,11 @@ const generateBillHtml = (bill, billBooks = []) => {
 export default function BillScreen({ navigation }) {
   const [bills, setBills] = useState([]);
   const [billBooks, setBillBooks] = useState([]);
+  const [parties, setParties] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isBookPickerVisible, setIsBookPickerVisible] = useState(false);
+  const [isPartyPickerVisible, setIsPartyPickerVisible] = useState(false);
+  const [partySearchQuery, setPartySearchQuery] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [generatingPdfId, setGeneratingPdfId] = useState(null);
@@ -786,9 +790,10 @@ export default function BillScreen({ navigation }) {
   const loadAllData = async () => {
     try {
       setIsLoading(true);
-      const [billsData, booksData] = await Promise.all([
+      const [billsData, booksData, partiesData] = await Promise.all([
         AsyncStorage.getItem(BILLS_STORAGE_KEY),
         AsyncStorage.getItem(BILL_BOOKS_STORAGE_KEY),
+        AsyncStorage.getItem(PARTIES_STORAGE_KEY),
       ]);
 
       if (billsData) {
@@ -802,9 +807,15 @@ export default function BillScreen({ navigation }) {
       } else {
         setBillBooks([]);
       }
+
+      if (partiesData) {
+        setParties(JSON.parse(partiesData));
+      } else {
+        setParties([]);
+      }
     } catch (error) {
       console.error('Failed to load data:', error);
-      Alert.alert('Error', 'Unable to load bills and bill books from storage.');
+      Alert.alert('Error', 'Unable to load bills, bill books, and parties from storage.');
     } finally {
       setIsLoading(false);
     }
@@ -824,10 +835,35 @@ export default function BillScreen({ navigation }) {
     return [];
   };
 
-  const handleInputChange = (field, value) => {
+  const reloadParties = async () => {
+    try {
+      const partiesData = await AsyncStorage.getItem(PARTIES_STORAGE_KEY);
+      if (partiesData) {
+        const parsed = JSON.parse(partiesData);
+        setParties(parsed);
+        return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to load parties:', e);
+    }
+    setParties([]);
+    return [];
+  };
+
+  const handleSelectParty = (party) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      partyName: party.partyName || '',
+      partyGstin: party.gstin || '',
+    }));
+    setIsPartyPickerVisible(false);
+  };
+
+  const handleInputChange = (field, value) => {
+    const sanitizedValue = field === 'billNo' ? value.replace(/[^\d]/g, '') : value;
+    setFormData((prev) => ({
+      ...prev,
+      [field]: sanitizedValue,
     }));
   };
 
@@ -1040,7 +1076,7 @@ export default function BillScreen({ navigation }) {
 
   const handleOpenAddModal = async () => {
     resetForm();
-    const books = await reloadBillBooks();
+    const [books, _parties] = await Promise.all([reloadBillBooks(), reloadParties()]);
     if (books.length > 0) {
       handleSelectBillBook(books[0]);
     }
@@ -1049,7 +1085,7 @@ export default function BillScreen({ navigation }) {
 
   const handleOpenEditModal = async (bill) => {
     setEditingId(bill.id);
-    const books = await reloadBillBooks();
+    const [books, _parties] = await Promise.all([reloadBillBooks(), reloadParties()]);
 
     const matchedBook = books.find((b) => b.id === bill.billBookId) || {
       id: bill.billBookId || '',
@@ -1065,6 +1101,9 @@ export default function BillScreen({ navigation }) {
     };
     setSelectedBillBook(matchedBook);
 
+    const matchedParty = _parties?.find((p) => p.partyName === bill.partyName);
+    const resolvedPartyGstin = bill.partyGstin || matchedParty?.gstin || '';
+
     const parsedDate = parseDateString(bill.date);
     setPickerSelectedDate(parsedDate);
     setPickerViewMonth(parsedDate.getMonth());
@@ -1076,7 +1115,7 @@ export default function BillScreen({ navigation }) {
       billNo: bill.billNo || '',
       date: bill.date || getTodayFormatted(),
       pChNo: bill.pChNo || '',
-      partyGstin: bill.partyGstin || '',
+      partyGstin: resolvedPartyGstin,
       billBookId: bill.billBookId || '',
       billBookName: bill.billBookName || '',
       billBookAddress: bill.billBookAddress || '',
@@ -1694,18 +1733,50 @@ export default function BillScreen({ navigation }) {
                 <Text style={styles.formSectionTitle}>2. Party & Bill Details</Text>
               </View>
 
-              {/* Field: Party Name */}
+              {/* Field: Party Name Dropdown */}
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>
                   Party Name <Text style={styles.requiredStar}>*</Text>
                 </Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Aura Weaves & Fabrics"
-                  placeholderTextColor="#94A3B8"
-                  value={formData.partyName}
-                  onChangeText={(val) => handleInputChange('partyName', val)}
-                />
+
+                <TouchableOpacity
+                  style={styles.partyPickerTrigger}
+                  onPress={async () => {
+                    await reloadParties();
+                    setPartySearchQuery('');
+                    setIsPartyPickerVisible(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.triggerLeft}>
+                    <View style={[styles.triggerIconBox, { backgroundColor: '#EEF2FF' }]}>
+                      <Ionicons name="people" size={18} color="#4F46E5" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[
+                          styles.triggerTitle,
+                          !formData.partyName && styles.triggerTitlePlaceholder,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {formData.partyName || 'Select Registered Party...'}
+                      </Text>
+                      {formData.partyGstin ? (
+                        <Text style={styles.triggerSubtitle} numberOfLines={1}>
+                          GSTIN: {formData.partyGstin}
+                        </Text>
+                      ) : formData.partyName ? (
+                        <Text style={styles.triggerSubtitlePlaceholder}>No GSTIN registered</Text>
+                      ) : (
+                        <Text style={styles.triggerSubtitlePlaceholder}>
+                          Tap to select party from storage
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-down" size={18} color="#64748B" />
+                </TouchableOpacity>
               </View>
 
               {/* Row: Bill No & Date Picker Trigger */}
@@ -1716,8 +1787,9 @@ export default function BillScreen({ navigation }) {
                   </Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="e.g. INV-1001"
+                    placeholder="e.g. 1001"
                     placeholderTextColor="#94A3B8"
+                    keyboardType="number-pad"
                     value={formData.billNo}
                     onChangeText={(val) => handleInputChange('billNo', val)}
                   />
@@ -1746,30 +1818,16 @@ export default function BillScreen({ navigation }) {
                 </View>
               </View>
 
-              {/* Row: P.Ch.No & Party GSTIN */}
-              <View style={styles.inputRow}>
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>P.Ch.No. (Challan)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="e.g. PCH-882"
-                    placeholderTextColor="#94A3B8"
-                    value={formData.pChNo}
-                    onChangeText={(val) => handleInputChange('pChNo', val)}
-                  />
-                </View>
-
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>Party GSTIN</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="e.g. 24AAAAA0000A1Z5"
-                    placeholderTextColor="#94A3B8"
-                    autoCapitalize="characters"
-                    value={formData.partyGstin}
-                    onChangeText={(val) => handleInputChange('partyGstin', val)}
-                  />
-                </View>
+              {/* Field: P.Ch.No (Challan) */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>P.Ch.No. (Challan)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. PCH-882"
+                  placeholderTextColor="#94A3B8"
+                  value={formData.pChNo}
+                  onChangeText={(val) => handleInputChange('pChNo', val)}
+                />
               </View>
 
               {/* STEP 3: MULTIPLE ITEM DETAILS */}
@@ -2043,6 +2101,114 @@ export default function BillScreen({ navigation }) {
                     </TouchableOpacity>
                   );
                 })}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Party Picker Modal */}
+      <Modal
+        visible={isPartyPickerVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setIsPartyPickerVisible(false)}
+      >
+        <View style={styles.pickerModalOverlay}>
+          <View style={styles.pickerModalContent}>
+            <View style={styles.pickerHeader}>
+              <View>
+                <Text style={styles.pickerTitle}>Select Party</Text>
+                <Text style={styles.pickerSubHeader}>
+                  {parties.length} {parties.length === 1 ? 'party' : 'parties'} stored
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setIsPartyPickerVisible(false)}>
+                <Ionicons name="close" size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Filter for Parties */}
+            {parties.length > 0 && (
+              <View style={styles.pickerSearchBox}>
+                <Ionicons name="search-outline" size={16} color="#94A3B8" />
+                <TextInput
+                  style={styles.pickerSearchInput}
+                  placeholder="Search party or GSTIN..."
+                  placeholderTextColor="#94A3B8"
+                  value={partySearchQuery}
+                  onChangeText={setPartySearchQuery}
+                />
+                {partySearchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setPartySearchQuery('')}>
+                    <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {parties.length === 0 ? (
+              <View style={styles.pickerEmptyWrap}>
+                <Ionicons name="people-outline" size={40} color="#94A3B8" />
+                <Text style={styles.pickerEmptyTitle}>No Parties Found</Text>
+                <Text style={styles.pickerEmptySub}>
+                  Please add parties in the Party tab first to select them here.
+                </Text>
+                <TouchableOpacity
+                  style={styles.goToBillBookBtn}
+                  onPress={() => {
+                    setIsPartyPickerVisible(false);
+                    setIsModalVisible(false);
+                    navigation?.navigate('Party');
+                  }}
+                >
+                  <Text style={styles.goToBillBookBtnText}>Go to Party Tab</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
+                {parties
+                  .filter((p) => {
+                    if (!partySearchQuery.trim()) return true;
+                    const q = partySearchQuery.toLowerCase();
+                    return (
+                      p.partyName?.toLowerCase().includes(q) ||
+                      p.gstin?.toLowerCase().includes(q)
+                    );
+                  })
+                  .map((party) => {
+                    const isSelected = formData.partyName === party.partyName;
+                    return (
+                      <TouchableOpacity
+                        key={party.id}
+                        style={[styles.pickerItem, isSelected && styles.pickerItemSelected]}
+                        onPress={() => handleSelectParty(party)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.pickerItemIconWrap}>
+                          <Text style={styles.pickerPartyAvatarText}>
+                            {party.partyName ? party.partyName.charAt(0).toUpperCase() : 'P'}
+                          </Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={[
+                              styles.pickerItemName,
+                              isSelected && styles.pickerItemTextSelected,
+                            ]}
+                          >
+                            {party.partyName}
+                          </Text>
+                          <Text style={styles.pickerItemDetails}>
+                            GSTIN: {party.gstin || 'Not Provided'}
+                          </Text>
+                        </View>
+                        {isSelected && (
+                          <Ionicons name="checkmark-circle" size={20} color="#4F46E5" />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
               </ScrollView>
             )}
           </View>
@@ -3371,5 +3537,48 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#D97706',
     marginTop: 2,
+  },
+  partyPickerTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#C7D2FE',
+    borderRadius: 14,
+    padding: 12,
+  },
+  managePartiesLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
+  pickerSubHeader: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  pickerSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 12,
+    gap: 8,
+  },
+  pickerSearchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#0F172A',
+    padding: 0,
+  },
+  pickerPartyAvatarText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#4F46E5',
   },
 });
