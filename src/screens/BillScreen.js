@@ -153,18 +153,18 @@ const formatCurrencyPdf = (num) => {
   });
 };
 
-// Helper to format mobile number with +91 and spacing like in photo
+// Helper to format mobile number with +91 and spacing
 const formatMobileDisplay = (num) => {
-  if (!num) return '+91 99987 12204';
+  if (!num) return '';
   const digits = String(num).replace(/[^\d]/g, '');
   let phone = digits;
   if (phone.startsWith('91') && phone.length === 12) phone = phone.slice(2);
   if (phone.length === 10) return `+91 ${phone.slice(0, 5)} ${phone.slice(5)}`;
-  return num;
+  return String(num).trim();
 };
 
-// Generates an authentic A4 PDF HTML template identical to the user's pink tax invoice bill book photo
-const generateBillHtml = (bill) => {
+// Generates an authentic A5 PDF HTML template with White paper and enhanced description column
+const generateBillHtml = (bill, billBooks = []) => {
   const items = Array.isArray(bill.items) ? bill.items : [];
   const taxes = Array.isArray(bill.taxes) ? bill.taxes : [];
 
@@ -199,18 +199,29 @@ const generateBillHtml = (bill) => {
       ? parseFloat(bill.totalAmount) || 0
       : Math.round((taxableTotal + totalTaxes) * 100) / 100;
 
-  // Render at least 8 rows to simulate pre-printed invoice book pad in photo on A5
-  const minRows = 8;
+  // Render at least 12 rows to simulate full pre-printed invoice book pad
+  const minRows = 12;
   const emptyRowsCount = Math.max(0, minRows - items.length);
   const emptyRows = Array.from({ length: emptyRowsCount });
 
-  const firmName = bill.billBookName || 'Nareshbhai Laljibhai Dholakiya';
-  const firmAddress =
-    bill.billBookAddress ||
-    'Plot No-20, Angan Row House, Sayan Road Amroli, Surat';
-  const mobileNo = formatMobileDisplay(
-    bill.billBookMobileNumber || bill.mobileNumber
-  );
+  const firmName = bill.billBookName || 'Firm Name';
+  const firmAddress = bill.billBookAddress || '';
+
+  // Get mobile number directly from bill or registered bill book
+  const matchedBook =
+    (Array.isArray(billBooks) &&
+      billBooks.find(
+        (b) => b.id === bill.billBookId || b.billBookName === bill.billBookName
+      )) ||
+    null;
+
+  const rawMobile =
+    bill.billBookMobileNumber ||
+    matchedBook?.mobileNumber ||
+    bill.mobileNumber ||
+    '';
+
+  const mobileNo = formatMobileDisplay(rawMobile);
 
   return `
 <!DOCTYPE html>
@@ -222,7 +233,7 @@ const generateBillHtml = (bill) => {
   <style>
     @page {
       size: A5 portrait;
-      margin: 4.5mm;
+      margin: 3.5mm;
     }
     * {
       box-sizing: border-box;
@@ -232,110 +243,110 @@ const generateBillHtml = (bill) => {
     body {
       margin: 0;
       padding: 0;
-      background-color: #fce7f3; /* Authentic Pink Receipt Paper */
-      color: #1e1b4b; /* Deep Indigo / Navy Ink */
+      background-color: #ffffff; /* Clean White Paper */
+      color: #0f172a; /* Deep Charcoal / Slate Ink */
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 11px;
-      line-height: 1.22;
+      font-size: 10.5px;
+      line-height: 1.2;
     }
     .bill-wrapper {
       width: 100%;
-      min-height: 198mm;
-      border: 2px solid #1e1b4b;
-      padding: 8px 10px 10px 10px;
-      background-color: #fce7f3;
+      border: 2px solid #0f172a;
+      padding: 6px 8px 8px 8px;
+      background-color: #ffffff;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
     }
     /* Top utility row */
     .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1.2px solid #1e1b4b;
-      padding-bottom: 4px;
-      margin-bottom: 5px;
+      border-bottom: 1.2px solid #0f172a;
+      padding-bottom: 3px;
+      margin-bottom: 4px;
     }
     .tax-badge {
-      background-color: #1e1b4b;
+      background-color: #0f172a;
       color: #ffffff;
-      font-size: 9.5px;
+      font-size: 9px;
       font-weight: 800;
       padding: 2px 6px;
       border-radius: 3px;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.5px;
     }
     .slogan-box {
       text-align: center;
-      font-size: 10.5px;
+      font-size: 10px;
       font-weight: 800;
-      color: #1e1b4b;
+      color: #0f172a;
       line-height: 1.15;
     }
     .slogan-sub {
-      font-size: 9px;
+      font-size: 8.5px;
       font-weight: 700;
-      color: #312e81;
+      color: #334155;
     }
     .mobile-box {
-      font-size: 10.5px;
+      font-size: 10px;
       font-weight: 800;
-      color: #1e1b4b;
+      color: #0f172a;
+      text-align: right;
+      min-width: 80px;
     }
 
     /* Firm Header */
     .firm-header-section {
       text-align: center;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
     .firm-title {
-      font-size: 21px;
+      font-size: 20px;
       font-weight: 900;
-      color: #1e1b4b;
+      color: #0f172a;
       letter-spacing: 0.3px;
       margin: 0;
       line-height: 1.15;
     }
     .firm-tagline {
-      font-size: 11.5px;
+      font-size: 11px;
       font-style: italic;
       font-family: 'Times New Roman', Times, serif;
       font-weight: 700;
-      color: #312e81;
+      color: #334155;
       margin-top: 1px;
     }
     .firm-address {
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 600;
-      color: #1e1b4b;
-      margin-top: 2px;
+      color: #334155;
+      margin-top: 1px;
     }
 
     /* Customer & Invoice Details Box */
     .customer-box {
-      border: 1.2px solid #1e1b4b;
-      border-radius: 6px;
-      padding: 6px 8px;
+      border: 1.2px solid #0f172a;
+      border-radius: 5px;
+      padding: 5px 7px;
       display: flex;
       justify-content: space-between;
-      margin-bottom: 6px;
-      background-color: rgba(255, 255, 255, 0.3);
+      margin-bottom: 4px;
+      background-color: #f8fafc;
     }
     .customer-col-left {
       width: 65%;
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 4px;
     }
     .customer-col-right {
       width: 32%;
-      border-left: 1.2px solid #1e1b4b;
-      padding-left: 10px;
+      border-left: 1.2px solid #0f172a;
+      padding-left: 8px;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 7px;
+      gap: 5px;
     }
     .detail-row {
       display: flex;
@@ -343,17 +354,17 @@ const generateBillHtml = (bill) => {
     }
     .detail-label {
       font-weight: 800;
-      font-size: 11px;
-      color: #1e1b4b;
+      font-size: 10.5px;
+      color: #0f172a;
       white-space: nowrap;
     }
     .detail-line-val {
       flex: 1;
-      border-bottom: 1px dotted #1e1b4b;
-      margin-left: 6px;
-      padding-left: 3px;
+      border-bottom: 1px dotted #0f172a;
+      margin-left: 5px;
+      padding-left: 2px;
       font-weight: 800;
-      font-size: 11.5px;
+      font-size: 11px;
       color: #0f172a;
     }
 
@@ -361,14 +372,14 @@ const generateBillHtml = (bill) => {
     .items-table {
       width: 100%;
       border-collapse: collapse;
-      border: 1.2px solid #1e1b4b;
+      border: 1.2px solid #0f172a;
     }
     .items-table th {
-      background-color: #1e1b4b;
+      background-color: #0f172a;
       color: #ffffff;
       font-weight: 800;
-      font-size: 10px;
-      padding: 4px 2px;
+      font-size: 9.5px;
+      padding: 3.5px 3px;
       border-right: 1px solid #ffffff;
       text-align: center;
     }
@@ -376,35 +387,43 @@ const generateBillHtml = (bill) => {
       border-right: none;
     }
     .items-table td {
-      padding: 3px 4px;
+      padding: 2.5px 4px;
       font-size: 10px;
-      border-right: 1.2px solid #1e1b4b;
-      border-bottom: 1px dotted #c7d2fe;
-      vertical-align: middle;
-      height: 18px;
+      border-right: 1.2px solid #0f172a;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+      height: 16.5px;
     }
     .items-table td:last-child {
       border-right: none;
     }
-    .col-no { width: 6%; text-align: center; font-weight: 700; }
-    .col-desc { width: 46%; text-align: left; font-weight: 700; }
-    .col-hsn { width: 14%; text-align: center; font-weight: 600; }
-    .col-psc { width: 10%; text-align: center; font-weight: 700; }
-    .col-rate { width: 11%; text-align: right; font-weight: 700; }
-    .col-amount { width: 13%; text-align: right; font-weight: 800; }
+    .col-no { width: 5%; text-align: center; font-weight: 700; }
+    .col-desc {
+      width: 54%;
+      text-align: left;
+      font-weight: 700;
+      word-break: break-word;
+      white-space: normal;
+      line-height: 1.3;
+      padding: 2.5px 5px !important;
+    }
+    .col-hsn { width: 11%; text-align: center; font-weight: 600; }
+    .col-psc { width: 9%; text-align: center; font-weight: 700; }
+    .col-rate { width: 10%; text-align: right; font-weight: 700; }
+    .col-amount { width: 11%; text-align: right; font-weight: 800; }
 
     /* Bottom Section */
     .bottom-split {
       display: flex;
-      border-left: 1.2px solid #1e1b4b;
-      border-right: 1.2px solid #1e1b4b;
-      border-bottom: 1.2px solid #1e1b4b;
-      background-color: rgba(255, 255, 255, 0.25);
+      border-left: 1.2px solid #0f172a;
+      border-right: 1.2px solid #0f172a;
+      border-bottom: 1.2px solid #0f172a;
+      background-color: #ffffff;
     }
     .bottom-left-panel {
       width: 60%;
-      border-right: 1.2px solid #1e1b4b;
-      padding: 6px 8px;
+      border-right: 1.2px solid #0f172a;
+      padding: 5px 7px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -415,45 +434,45 @@ const generateBillHtml = (bill) => {
 
     /* Memo Box */
     .memo-card {
-      border: 1px solid #1e1b4b;
+      border: 1px solid #0f172a;
       border-radius: 4px;
-      padding: 4px 6px;
-      background-color: #fdf2f8;
-      margin-bottom: 5px;
+      padding: 3px 5px;
+      background-color: #f8fafc;
+      margin-bottom: 4px;
     }
     .memo-line-row {
       display: flex;
       align-items: baseline;
-      margin-bottom: 3px;
-      font-size: 9.5px;
+      margin-bottom: 2px;
+      font-size: 9px;
     }
     .memo-line-row:last-child {
       margin-bottom: 0;
     }
     .memo-line-label {
-      width: 65px;
+      width: 60px;
       font-weight: 700;
-      color: #1e1b4b;
+      color: #0f172a;
     }
     .memo-fill-line {
       flex: 1;
-      border-bottom: 1px solid #1e1b4b;
-      height: 10px;
+      border-bottom: 1px solid #0f172a;
+      height: 9px;
     }
 
     /* Bank Card */
     .bank-card {
-      border: 1px solid #1e1b4b;
+      border: 1px solid #0f172a;
       border-radius: 4px;
-      padding: 4px 6px;
-      background-color: #fdf2f8;
-      font-size: 9px;
-      line-height: 1.28;
+      padding: 3px 5px;
+      background-color: #f8fafc;
+      font-size: 8.5px;
+      line-height: 1.25;
     }
     .bank-reverse-title {
       font-weight: 800;
-      color: #1e1b4b;
-      margin-bottom: 2px;
+      color: #0f172a;
+      margin-bottom: 1px;
     }
 
     /* Totals Summary Table */
@@ -462,14 +481,14 @@ const generateBillHtml = (bill) => {
       border-collapse: collapse;
     }
     .totals-grid td {
-      padding: 4px 6px;
-      font-size: 10px;
-      border-bottom: 1px solid #1e1b4b;
+      padding: 3px 5px;
+      font-size: 9.5px;
+      border-bottom: 1px solid #0f172a;
     }
     .t-label-col {
       font-weight: 700;
-      color: #1e1b4b;
-      border-right: 1.2px solid #1e1b4b;
+      color: #0f172a;
+      border-right: 1.2px solid #0f172a;
       width: 50%;
     }
     .t-val-col {
@@ -479,48 +498,48 @@ const generateBillHtml = (bill) => {
       color: #0f172a;
     }
     .grand-total-highlight {
-      background-color: #1e1b4b;
+      background-color: #0f172a;
     }
     .grand-total-highlight td {
       color: #ffffff !important;
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 900;
-      padding: 6px 6px;
+      padding: 5px 5px;
       border-bottom: none;
     }
 
     /* Signatures Footer */
     .footer-section {
-      margin-top: 8px;
-      padding: 6px 6px 0 6px;
+      margin-top: 6px;
+      padding: 4px 6px 0 6px;
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
     }
     .footer-left-info {
-      font-size: 9.5px;
-      line-height: 1.35;
+      font-size: 9px;
+      line-height: 1.3;
       font-weight: 700;
     }
     .receiver-sign-box {
-      margin-top: 25px;
-      font-size: 10px;
+      margin-top: 18px;
+      font-size: 9.5px;
       font-weight: 800;
-      color: #1e1b4b;
+      color: #0f172a;
     }
     .footer-right-sign {
       text-align: right;
     }
     .for-sign-title {
-      font-size: 10.5px;
-      font-weight: 800;
-      color: #1e1b4b;
-    }
-    .authorized-sign-box {
-      margin-top: 25px;
       font-size: 10px;
       font-weight: 800;
-      color: #1e1b4b;
+      color: #0f172a;
+    }
+    .authorized-sign-box {
+      margin-top: 18px;
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #0f172a;
     }
   </style>
 </head>
@@ -535,7 +554,7 @@ const generateBillHtml = (bill) => {
           <span class="slogan-sub">Jay Butbhavani Maa</span>
         </div>
         <div class="mobile-box">
-          Mo. ${mobileNo}
+          ${mobileNo ? `Mo. ${mobileNo}` : ''}
         </div>
       </div>
 
@@ -543,7 +562,7 @@ const generateBillHtml = (bill) => {
       <div class="firm-header-section">
         <h1 class="firm-title">${firmName}</h1>
         <div class="firm-tagline">All Type Of Handwork</div>
-        <div class="firm-address">${firmAddress}</div>
+        ${firmAddress ? `<div class="firm-address">${firmAddress}</div>` : ''}
       </div>
 
       <!-- Customer & Invoice Info Box -->
@@ -565,11 +584,11 @@ const generateBillHtml = (bill) => {
         <div class="customer-col-right">
           <div class="detail-row">
             <span class="detail-label">Bill No. :</span>
-            <span class="detail-line-val" style="border-bottom: 1px solid #1e1b4b;">${bill.billNo || ''}</span>
+            <span class="detail-line-val" style="border-bottom: 1px solid #0f172a;">${bill.billNo || ''}</span>
           </div>
           <div class="detail-row" style="margin-bottom: 0;">
             <span class="detail-label">Date :</span>
-            <span class="detail-line-val" style="border-bottom: 1px solid #1e1b4b;">${bill.date || ''}</span>
+            <span class="detail-line-val" style="border-bottom: 1px solid #0f172a;">${bill.date || ''}</span>
           </div>
         </div>
       </div>
@@ -654,8 +673,8 @@ const generateBillHtml = (bill) => {
               </tr>
             ` : ''}
             <tr>
-              <td class="t-label-col" style="font-weight: 800; background-color: rgba(199, 210, 254, 0.4);">TOTAL</td>
-              <td class="t-val-col" style="font-weight: 800; background-color: rgba(199, 210, 254, 0.4);">₹${formatCurrencyPdf(taxableTotal)}</td>
+              <td class="t-label-col" style="font-weight: 800; background-color: #f1f5f9;">TOTAL</td>
+              <td class="t-val-col" style="font-weight: 800; background-color: #f1f5f9;">₹${formatCurrencyPdf(taxableTotal)}</td>
             </tr>
             ${taxes.map((t) => {
               const rate = parseFloat(t.taxRate) || 0;
@@ -1226,7 +1245,7 @@ export default function BillScreen({ navigation }) {
   const handleDownloadPdf = async (bill) => {
     try {
       setGeneratingPdfId(bill.id);
-      const html = generateBillHtml(bill);
+      const html = generateBillHtml(bill, billBooks);
 
       // Open native Android & iOS Save as PDF / Print dialog
       await Print.printAsync({ html });
