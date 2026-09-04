@@ -410,9 +410,9 @@ const generateBillHtml = (bill, billBooks = []) => {
     .items-table tbody tr:last-child td {
       border-bottom: 1.5px solid #0f172a !important;
     }
-    .col-no { width: 5%; text-align: center; font-weight: 700; }
+    .col-no { width: 6%; text-align: center; font-weight: 700; }
     .col-desc {
-      width: 54%;
+      width: 56%;
       text-align: left;
       font-weight: 700;
       word-break: break-word;
@@ -420,10 +420,9 @@ const generateBillHtml = (bill, billBooks = []) => {
       line-height: 1.35;
       padding: 4px 8px !important;
     }
-    .col-hsn { width: 11%; text-align: center; font-weight: 600; }
-    .col-psc { width: 9%; text-align: center; font-weight: 700; }
-    .col-rate { width: 10%; text-align: right; font-weight: 700; }
-    .col-amount { width: 11%; text-align: right; font-weight: 800; }
+    .col-psc { width: 12%; text-align: center; font-weight: 700; }
+    .col-rate { width: 12%; text-align: right; font-weight: 700; }
+    .col-amount { width: 14%; text-align: right; font-weight: 800; }
 
     /* Bottom Section */
     .bottom-split {
@@ -609,7 +608,6 @@ const generateBillHtml = (bill, billBooks = []) => {
           <tr>
             <th class="col-no">No.</th>
             <th class="col-desc">Description</th>
-            <th class="col-hsn">HSN CODE</th>
             <th class="col-psc">Psc.</th>
             <th class="col-rate">Rate</th>
             <th class="col-amount">Amount</th>
@@ -620,7 +618,6 @@ const generateBillHtml = (bill, billBooks = []) => {
             <tr>
               <td class="col-no">(${idx + 1})</td>
               <td class="col-desc">${it.description || 'Item'}</td>
-              <td class="col-hsn">${it.hsnCode || '—'}</td>
               <td class="col-psc">${it.psc || '—'}</td>
               <td class="col-rate">${it.rate ? `₹${it.rate}` : '—'}</td>
               <td class="col-amount">₹${formatCurrencyPdf(it.amount)}</td>
@@ -630,7 +627,6 @@ const generateBillHtml = (bill, billBooks = []) => {
             <tr>
               <td class="col-no">&nbsp;</td>
               <td class="col-desc">&nbsp;</td>
-              <td class="col-hsn">&nbsp;</td>
               <td class="col-psc">&nbsp;</td>
               <td class="col-rate">&nbsp;</td>
               <td class="col-amount">&nbsp;</td>
@@ -771,7 +767,6 @@ export default function BillScreen({ navigation }) {
     {
       id: 'item-1',
       description: '',
-      hsnCode: '',
       psc: '',
       rate: '',
       amount: '',
@@ -976,7 +971,6 @@ export default function BillScreen({ navigation }) {
       {
         id: Date.now().toString(),
         description: '',
-        hsnCode: '',
         psc: '',
         rate: '',
         amount: '',
@@ -1062,7 +1056,6 @@ export default function BillScreen({ navigation }) {
       {
         id: 'item-1',
         description: '',
-        hsnCode: '',
         psc: '',
         rate: '',
         amount: '',
@@ -1135,7 +1128,6 @@ export default function BillScreen({ navigation }) {
         bill.items.map((it, idx) => ({
           id: it.id || `item-${idx}-${Date.now()}`,
           description: it.description || '',
-          hsnCode: it.hsnCode || '',
           psc: String(it.psc || ''),
           rate: String(it.rate || ''),
           amount: String(it.amount || ''),
@@ -1146,7 +1138,6 @@ export default function BillScreen({ navigation }) {
         {
           id: 'item-1',
           description: '',
-          hsnCode: '',
           psc: '',
           rate: '',
           amount: '',
@@ -1182,7 +1173,6 @@ export default function BillScreen({ navigation }) {
       .map((it) => ({
         id: it.id,
         description: it.description.trim(),
-        hsnCode: it.hsnCode.trim(),
         psc: it.psc.trim(),
         rate: it.rate.trim(),
         amount:
@@ -1537,7 +1527,7 @@ export default function BillScreen({ navigation }) {
               {bill.items && bill.items.length > 0 && (
                 <View style={styles.itemsTable}>
                   <View style={styles.tableHeader}>
-                    <Text style={[styles.tableColHeader, { flex: 3 }]}>Item & HSN</Text>
+                    <Text style={[styles.tableColHeader, { flex: 3 }]}>Item</Text>
                     <Text style={[styles.tableColHeader, { flex: 1.2, textAlign: 'center' }]}>Psc</Text>
                     <Text style={[styles.tableColHeader, { flex: 1.5, textAlign: 'right' }]}>Rate</Text>
                     <Text style={[styles.tableColHeader, { flex: 2, textAlign: 'right' }]}>Amount</Text>
@@ -1548,9 +1538,6 @@ export default function BillScreen({ navigation }) {
                         <Text style={styles.itemDesc} numberOfLines={1}>
                           {it.description || 'Item'}
                         </Text>
-                        {it.hsnCode ? (
-                          <Text style={styles.itemHsn}>HSN: {it.hsnCode}</Text>
-                        ) : null}
                       </View>
                       <Text style={[styles.itemText, { flex: 1.2, textAlign: 'center' }]}>
                         {it.psc || '-'}
@@ -1860,20 +1847,8 @@ export default function BillScreen({ navigation }) {
                       />
                     </View>
 
-                    {/* Row: HSN, Psc, Rate, Amount */}
+                    {/* Row: Psc, Rate, Amount */}
                     <View style={styles.itemGridRow}>
-                      <View style={styles.gridColHSN}>
-                        <Text style={styles.itemFieldLabel}>HSN</Text>
-                        <TextInput
-                          style={styles.itemInput}
-                          placeholder="5208"
-                          placeholderTextColor="#94A3B8"
-                          keyboardType="number-pad"
-                          value={item.hsnCode}
-                          onChangeText={(val) => handleItemChange(item.id, 'hsnCode', val)}
-                        />
-                      </View>
-
                       <View style={styles.gridColPsc}>
                         <Text style={styles.itemFieldLabel}>Psc</Text>
                         <TextInput
@@ -3291,17 +3266,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  gridColHSN: {
-    flex: 2,
-  },
   gridColPsc: {
-    flex: 1.5,
+    flex: 1.2,
   },
   gridColRate: {
-    flex: 1.8,
+    flex: 1.4,
   },
   gridColAmount: {
-    flex: 2.2,
+    flex: 1.8,
   },
   addMoreItemBtn: {
     flexDirection: 'row',
