@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const BILLS_STORAGE_KEY = '@textile_bills_list';
 const BILL_BOOKS_STORAGE_KEY = '@textile_bill_books';
@@ -1253,24 +1254,74 @@ export default function BillScreen({ navigation }) {
     );
   };
 
-  // PDF Generation & Download Handler (Native Save as PDF & Print)
-  const handleDownloadPdf = async (bill) => {
+  // Direct PDF Share Handler
+  const handleSharePdf = async (bill) => {
     try {
       setGeneratingPdfId(bill.id);
       const html = generateBillHtml(bill, billBooks);
 
-      // Open native Android & iOS Save as PDF / Print dialog
-      await Print.printAsync({ html });
+      // 1. Generate local PDF with base64 in memory
+      const printResult = await Print.printToFileAsync({
+        html,
+        base64: true,
+      });
+
+      // 2. Prepare destination path in app documentDirectory
+      const safeBillNo = (bill.billNo || bill.id || 'Invoice').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const fileName = `Bill_${safeBillNo}.pdf`;
+      const targetUri = `${FileSystem.documentDirectory}${fileName}`;
+
+      // 3. Remove existing file if present to guarantee clean write
+      const fileInfo = await FileSystem.getInfoAsync(targetUri);
+      if (fileInfo.exists) {
+        await FileSystem.deleteAsync(targetUri, { idempotent: true });
+      }
+
+      // 4. Write directly to documentDirectory using base64 (bypasses cache/Print read restrictions)
+      if (printResult.base64) {
+        await FileSystem.writeAsStringAsync(targetUri, printResult.base64, {
+          encoding: FileSystem.EncodingType?.Base64 || 'base64',
+        });
+      } else {
+        await FileSystem.copyAsync({
+          from: printResult.uri,
+          to: targetUri,
+        });
+      }
+
+      // 5. Directly open native Share sheet (WhatsApp, Drive, Gmail, Save to Files, etc.)
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(targetUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Share ${fileName}`,
+          UTI: '.pdf',
+        });
+      } else {
+        // Fallback to print preview if sharing is not available on this device
+        await Print.printAsync({ html });
+      }
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      console.error('Error sharing PDF:', error);
       Alert.alert(
-        'PDF Generation Failed',
-        'Unable to open PDF preview. Please try again.'
+        'Share Failed',
+        'Could not open share dialog. Would you like to view print preview instead?',
+        [
+          {
+            text: 'Preview / Print',
+            onPress: () =>
+              Print.printAsync({ html: generateBillHtml(bill, billBooks) }).catch(() => { }),
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ]
       );
     } finally {
       setGeneratingPdfId(null);
     }
   };
+
+  // Backward-compatible alias
+  const handleDownloadPdf = handleSharePdf;
 
   const grandTotalBilled = bills.reduce(
     (sum, b) => sum + (parseFloat(b.totalAmount) || 0),
@@ -1380,7 +1431,7 @@ export default function BillScreen({ navigation }) {
                 <View style={styles.cardActionsGroup}>
                   <TouchableOpacity
                     style={styles.pdfBtn}
-                    onPress={() => handleDownloadPdf(bill)}
+                    onPress={() => handleSharePdf(bill)}
                     activeOpacity={0.7}
                     disabled={generatingPdfId === bill.id}
                   >
@@ -1388,8 +1439,8 @@ export default function BillScreen({ navigation }) {
                       <ActivityIndicator size="small" color="#DC2626" />
                     ) : (
                       <>
-                        <Ionicons name="document-text-outline" size={15} color="#DC2626" />
-                        <Text style={styles.pdfBtnText}>PDF</Text>
+                        <Ionicons name="share-social-outline" size={15} color="#DC2626" />
+                        <Text style={styles.pdfBtnText}>Share</Text>
                       </>
                     )}
                   </TouchableOpacity>
