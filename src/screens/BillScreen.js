@@ -410,9 +410,9 @@ const generateBillHtml = (bill, billBooks = []) => {
     .items-table tbody tr:last-child td {
       border-bottom: 1.5px solid #0f172a !important;
     }
-    .col-no { width: 6%; text-align: center; font-weight: 700; }
+    .col-no { width: 5%; text-align: center; font-weight: 700; }
     .col-desc {
-      width: 56%;
+      width: 54%;
       text-align: left;
       font-weight: 700;
       word-break: break-word;
@@ -420,9 +420,10 @@ const generateBillHtml = (bill, billBooks = []) => {
       line-height: 1.35;
       padding: 4px 8px !important;
     }
-    .col-psc { width: 12%; text-align: center; font-weight: 700; }
-    .col-rate { width: 12%; text-align: right; font-weight: 700; }
-    .col-amount { width: 14%; text-align: right; font-weight: 800; }
+    .col-chno { width: 11%; text-align: center; font-weight: 600; }
+    .col-psc { width: 9%; text-align: center; font-weight: 700; }
+    .col-rate { width: 10%; text-align: right; font-weight: 700; }
+    .col-amount { width: 11%; text-align: right; font-weight: 800; }
 
     /* Bottom Section */
     .bottom-split {
@@ -608,6 +609,7 @@ const generateBillHtml = (bill, billBooks = []) => {
           <tr>
             <th class="col-no">No.</th>
             <th class="col-desc">Description</th>
+            <th class="col-chno">Ch.No.</th>
             <th class="col-psc">Psc.</th>
             <th class="col-rate">Rate</th>
             <th class="col-amount">Amount</th>
@@ -618,6 +620,7 @@ const generateBillHtml = (bill, billBooks = []) => {
             <tr>
               <td class="col-no">(${idx + 1})</td>
               <td class="col-desc">${it.description || 'Item'}</td>
+              <td class="col-chno">${it.chNo || '—'}</td>
               <td class="col-psc">${it.psc || '—'}</td>
               <td class="col-rate">${it.rate ? `₹${it.rate}` : '—'}</td>
               <td class="col-amount">₹${formatCurrencyPdf(it.amount)}</td>
@@ -627,6 +630,7 @@ const generateBillHtml = (bill, billBooks = []) => {
             <tr>
               <td class="col-no">&nbsp;</td>
               <td class="col-desc">&nbsp;</td>
+              <td class="col-chno">&nbsp;</td>
               <td class="col-psc">&nbsp;</td>
               <td class="col-rate">&nbsp;</td>
               <td class="col-amount">&nbsp;</td>
@@ -767,6 +771,7 @@ export default function BillScreen({ navigation }) {
     {
       id: 'item-1',
       description: '',
+      chNo: '',
       psc: '',
       rate: '',
       amount: '',
@@ -947,13 +952,14 @@ export default function BillScreen({ navigation }) {
 
   // Multiple Items Handlers
   const handleItemChange = (id, field, value) => {
+    const sanitizedVal = field === 'chNo' ? value.replace(/[^\d]/g, '') : value;
     setItems((prev) =>
       prev.map((item) => {
         if (item.id === id) {
-          const updated = { ...item, [field]: value };
+          const updated = { ...item, [field]: sanitizedVal };
           if (field === 'psc' || field === 'rate') {
-            const pscVal = parseFloat(field === 'psc' ? value : item.psc) || 0;
-            const rateVal = parseFloat(field === 'rate' ? value : item.rate) || 0;
+            const pscVal = parseFloat(field === 'psc' ? sanitizedVal : item.psc) || 0;
+            const rateVal = parseFloat(field === 'rate' ? sanitizedVal : item.rate) || 0;
             if (pscVal > 0 && rateVal > 0) {
               updated.amount = (pscVal * rateVal).toFixed(2).replace(/\.00$/, '');
             }
@@ -971,6 +977,7 @@ export default function BillScreen({ navigation }) {
       {
         id: Date.now().toString(),
         description: '',
+        chNo: '',
         psc: '',
         rate: '',
         amount: '',
@@ -1056,6 +1063,7 @@ export default function BillScreen({ navigation }) {
       {
         id: 'item-1',
         description: '',
+        chNo: '',
         psc: '',
         rate: '',
         amount: '',
@@ -1128,6 +1136,7 @@ export default function BillScreen({ navigation }) {
         bill.items.map((it, idx) => ({
           id: it.id || `item-${idx}-${Date.now()}`,
           description: it.description || '',
+          chNo: String(it.chNo || ''),
           psc: String(it.psc || ''),
           rate: String(it.rate || ''),
           amount: String(it.amount || ''),
@@ -1138,6 +1147,7 @@ export default function BillScreen({ navigation }) {
         {
           id: 'item-1',
           description: '',
+          chNo: '',
           psc: '',
           rate: '',
           amount: '',
@@ -1173,13 +1183,14 @@ export default function BillScreen({ navigation }) {
       .map((it) => ({
         id: it.id,
         description: it.description.trim(),
+        chNo: (it.chNo || '').trim(),
         psc: it.psc.trim(),
         rate: it.rate.trim(),
         amount:
           it.amount.trim() ||
           ((parseFloat(it.psc) || 0) * (parseFloat(it.rate) || 0)).toString(),
       }))
-      .filter((it) => it.description || it.amount || it.psc);
+      .filter((it) => it.description || it.amount || it.psc || it.chNo);
 
     if (validItems.length === 0) {
       Alert.alert('Validation Error', 'Please add at least one line item.');
@@ -1527,7 +1538,7 @@ export default function BillScreen({ navigation }) {
               {bill.items && bill.items.length > 0 && (
                 <View style={styles.itemsTable}>
                   <View style={styles.tableHeader}>
-                    <Text style={[styles.tableColHeader, { flex: 3 }]}>Item</Text>
+                    <Text style={[styles.tableColHeader, { flex: 3 }]}>Item & Ch.No.</Text>
                     <Text style={[styles.tableColHeader, { flex: 1.2, textAlign: 'center' }]}>Psc</Text>
                     <Text style={[styles.tableColHeader, { flex: 1.5, textAlign: 'right' }]}>Rate</Text>
                     <Text style={[styles.tableColHeader, { flex: 2, textAlign: 'right' }]}>Amount</Text>
@@ -1538,6 +1549,9 @@ export default function BillScreen({ navigation }) {
                         <Text style={styles.itemDesc} numberOfLines={1}>
                           {it.description || 'Item'}
                         </Text>
+                        {it.chNo ? (
+                          <Text style={styles.itemChNo}>Ch.No: {it.chNo}</Text>
+                        ) : null}
                       </View>
                       <Text style={[styles.itemText, { flex: 1.2, textAlign: 'center' }]}>
                         {it.psc || '-'}
@@ -1847,8 +1861,20 @@ export default function BillScreen({ navigation }) {
                       />
                     </View>
 
-                    {/* Row: Psc, Rate, Amount */}
+                    {/* Row: Ch.No, Psc, Rate, Amount */}
                     <View style={styles.itemGridRow}>
+                      <View style={styles.gridColChNo}>
+                        <Text style={styles.itemFieldLabel}>Ch.No.</Text>
+                        <TextInput
+                          style={styles.itemInput}
+                          placeholder="e.g. 101"
+                          placeholderTextColor="#94A3B8"
+                          keyboardType="number-pad"
+                          value={item.chNo}
+                          onChangeText={(val) => handleItemChange(item.id, 'chNo', val)}
+                        />
+                      </View>
+
                       <View style={styles.gridColPsc}>
                         <Text style={styles.itemFieldLabel}>Psc</Text>
                         <TextInput
@@ -3266,14 +3292,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  gridColChNo: {
+    flex: 2,
+  },
   gridColPsc: {
-    flex: 1.2,
+    flex: 1.5,
   },
   gridColRate: {
-    flex: 1.4,
+    flex: 1.8,
   },
   gridColAmount: {
-    flex: 1.8,
+    flex: 2.2,
+  },
+  itemChNo: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 1,
+    fontWeight: '600',
   },
   addMoreItemBtn: {
     flexDirection: 'row',
