@@ -52,6 +52,18 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.actionTitle}>Bill Book</Text>
             <Text style={styles.actionSubtitle}>Khata & ledgers</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            activeOpacity={0.7}
+            onPress={() => navigation?.navigate('Party')}
+          >
+            <View style={[styles.actionIconWrap, { backgroundColor: '#EFF6FF' }]}>
+              <Ionicons name="people-outline" size={24} color="#2563EB" />
+            </View>
+            <Text style={styles.actionTitle}>Parties</Text>
+            <Text style={styles.actionSubtitle}>Directory & GSTIN</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
