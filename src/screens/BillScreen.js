@@ -734,7 +734,8 @@ export default function BillScreen({ navigation }) {
   const [partySearchQuery, setPartySearchQuery] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [generatingPdfId, setGeneratingPdfId] = useState(null);
+  const [sharingPdfId, setSharingPdfId] = useState(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState(null);
   const [previewingPdfId, setPreviewingPdfId] = useState(null);
 
   // Interactive Calendar Date Picker State
@@ -1328,7 +1329,7 @@ export default function BillScreen({ navigation }) {
   // Direct PDF Share Handler
   const handleSharePdf = async (bill) => {
     try {
-      setGeneratingPdfId(bill.id);
+      setSharingPdfId(bill.id);
       const { targetUri, fileName, html } = await generatePdfFile(bill);
 
       // Directly open native Share sheet (WhatsApp, Drive, Gmail, Save to Files, etc.)
@@ -1357,14 +1358,14 @@ export default function BillScreen({ navigation }) {
         ]
       );
     } finally {
-      setGeneratingPdfId(null);
+      setSharingPdfId(null);
     }
   };
 
   // Direct Download to Phone Storage
   const handleDownloadPdf = async (bill) => {
     try {
-      setGeneratingPdfId(bill.id);
+      setDownloadingPdfId(bill.id);
       const { targetUri, fileName, base64 } = await generatePdfFile(bill);
 
       // 1. Android: Save directly into Phone's Public Storage (Downloads / Selected folder)
@@ -1446,7 +1447,7 @@ export default function BillScreen({ navigation }) {
       console.error('Error downloading PDF:', error);
       Alert.alert('Download Failed', 'Failed to download PDF to phone storage.');
     } finally {
-      setGeneratingPdfId(null);
+      setDownloadingPdfId(null);
     }
   };
 
@@ -1602,9 +1603,9 @@ export default function BillScreen({ navigation }) {
                     style={styles.pdfBtn}
                     onPress={() => handleSharePdf(bill)}
                     activeOpacity={0.7}
-                    disabled={generatingPdfId === bill.id}
+                    disabled={sharingPdfId === bill.id}
                   >
-                    {generatingPdfId === bill.id ? (
+                    {sharingPdfId === bill.id ? (
                       <ActivityIndicator size="small" color="#DC2626" />
                     ) : (
                       <Ionicons name="share-social-outline" size={16} color="#DC2626" />
@@ -1659,15 +1660,15 @@ export default function BillScreen({ navigation }) {
                   style={styles.footerPdfBtn}
                   onPress={() => handleDownloadPdf(bill)}
                   activeOpacity={0.7}
-                  disabled={generatingPdfId === bill.id}
+                  disabled={downloadingPdfId === bill.id}
                 >
-                  {generatingPdfId === bill.id ? (
+                  {downloadingPdfId === bill.id ? (
                     <ActivityIndicator size="small" color="#DC2626" />
                   ) : (
                     <Ionicons name="cloud-download-outline" size={13} color="#DC2626" />
                   )}
                   <Text style={styles.footerPdfBtnText}>
-                    {generatingPdfId === bill.id ? 'Generating...' : 'Download PDF'}
+                    {downloadingPdfId === bill.id ? 'Downloading...' : 'Download PDF'}
                   </Text>
                 </TouchableOpacity>
 
