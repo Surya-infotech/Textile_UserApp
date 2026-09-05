@@ -1300,9 +1300,15 @@ export default function BillScreen({ navigation }) {
       base64: true,
     });
 
-    // 2. Prepare destination path in app documentDirectory
-    const safeBillNo = (bill.billNo || bill.id || 'Invoice').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const fileName = `Bill_${safeBillNo}.pdf`;
+    // 2. Prepare destination path in app documentDirectory: Bill Book Name followed by Bill No
+    const safeBookName = (bill.billBookName || 'BillBook')
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .replace(/_+/g, '_');
+    const safeBillNo = (bill.billNo || bill.id || 'Invoice')
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, '_');
+    const fileName = `Bill_${safeBillNo}_${safeBookName}.pdf`;
     const targetUri = `${FileSystem.documentDirectory}${fileName}`;
 
     // 3. Remove existing file if present to guarantee clean write
