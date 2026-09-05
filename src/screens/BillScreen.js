@@ -1322,7 +1322,7 @@ export default function BillScreen({ navigation }) {
       });
     }
 
-    return { targetUri, fileName, html };
+    return { targetUri, fileName, html, base64: printResult.base64 };
   };
 
   // Direct PDF Share Handler
@@ -1361,8 +1361,94 @@ export default function BillScreen({ navigation }) {
     }
   };
 
-  // Backward-compatible alias
-  const handleDownloadPdf = handleSharePdf;
+  // Direct Download to Phone Storage
+  const handleDownloadPdf = async (bill) => {
+    try {
+      setGeneratingPdfId(bill.id);
+      const { targetUri, fileName, base64 } = await generatePdfFile(bill);
+
+      // 1. Android: Save directly into Phone's Public Storage (Downloads / Selected folder)
+      if (Platform.OS === 'android' && FileSystem.StorageAccessFramework) {
+        try {
+          const pdfBase64 =
+            base64 ||
+            (await FileSystem.readAsStringAsync(targetUri, {
+              encoding: FileSystem.EncodingType?.Base64 || 'base64',
+            }));
+
+          let savedDirectory = await AsyncStorage.getItem('@textile_pdf_download_folder');
+
+          if (savedDirectory) {
+            try {
+              const cleanName = fileName.replace(/\.pdf$/i, '');
+              const newFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+                savedDirectory,
+                cleanName,
+                'application/pdf'
+              );
+              await FileSystem.writeAsStringAsync(newFileUri, pdfBase64, {
+                encoding: FileSystem.EncodingType?.Base64 || 'base64',
+              });
+              Alert.alert(
+                'Download Successful',
+                `"${fileName}" has been saved directly to your phone storage.`
+              );
+              return;
+            } catch (err) {
+              console.warn('Existing folder permission expired or folder deleted, re-prompting:', err);
+              savedDirectory = null;
+            }
+          }
+
+          // If no stored folder or permission expired, ask user to select folder (defaults to Downloads)
+          let initialUri = null;
+          try {
+            initialUri = FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Download');
+          } catch (_) { }
+
+          const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(initialUri);
+          if (permissions.granted) {
+            const chosenDir = permissions.directoryUri;
+            await AsyncStorage.setItem('@textile_pdf_download_folder', chosenDir);
+
+            const cleanName = fileName.replace(/\.pdf$/i, '');
+            const newFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+              chosenDir,
+              cleanName,
+              'application/pdf'
+            );
+            await FileSystem.writeAsStringAsync(newFileUri, pdfBase64, {
+              encoding: FileSystem.EncodingType?.Base64 || 'base64',
+            });
+            Alert.alert(
+              'Download Successful',
+              `"${fileName}" has been saved directly to your phone storage.`
+            );
+            return;
+          }
+        } catch (safErr) {
+          console.warn('StorageAccessFramework failed, trying fallback sharing:', safErr);
+        }
+      }
+
+      // 2. iOS or fallback: Use native save dialog (Save to Files)
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(targetUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Save ${fileName}`,
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        Alert.alert('Download Error', 'Could not save file to device storage.');
+      }
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      Alert.alert('Download Failed', 'Failed to download PDF to phone storage.');
+    } finally {
+      setGeneratingPdfId(null);
+    }
+  };
 
   // Direct PDF Open / Preview in Phone's Native Viewer
   const handlePreviewPdf = async (bill) => {
