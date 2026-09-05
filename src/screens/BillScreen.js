@@ -19,6 +19,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as IntentLauncher from 'expo-intent-launcher';
 
 const BILLS_STORAGE_KEY = '@textile_bills_list';
 const BILL_BOOKS_STORAGE_KEY = '@textile_bill_books';
@@ -734,6 +735,7 @@ export default function BillScreen({ navigation }) {
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [generatingPdfId, setGeneratingPdfId] = useState(null);
+  const [previewingPdfId, setPreviewingPdfId] = useState(null);
 
   // Interactive Calendar Date Picker State
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
@@ -1287,42 +1289,49 @@ export default function BillScreen({ navigation }) {
     );
   };
 
+  // Generate & Save PDF file to device storage
+  const generatePdfFile = async (bill) => {
+    const html = generateBillHtml(bill, billBooks);
+
+    // 1. Generate local PDF with base64 in memory
+    const printResult = await Print.printToFileAsync({
+      html,
+      base64: true,
+    });
+
+    // 2. Prepare destination path in app documentDirectory
+    const safeBillNo = (bill.billNo || bill.id || 'Invoice').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const fileName = `Bill_${safeBillNo}.pdf`;
+    const targetUri = `${FileSystem.documentDirectory}${fileName}`;
+
+    // 3. Remove existing file if present to guarantee clean write
+    const fileInfo = await FileSystem.getInfoAsync(targetUri);
+    if (fileInfo.exists) {
+      await FileSystem.deleteAsync(targetUri, { idempotent: true });
+    }
+
+    // 4. Write directly to documentDirectory using base64 (bypasses cache/Print read restrictions)
+    if (printResult.base64) {
+      await FileSystem.writeAsStringAsync(targetUri, printResult.base64, {
+        encoding: FileSystem.EncodingType?.Base64 || 'base64',
+      });
+    } else {
+      await FileSystem.copyAsync({
+        from: printResult.uri,
+        to: targetUri,
+      });
+    }
+
+    return { targetUri, fileName, html };
+  };
+
   // Direct PDF Share Handler
   const handleSharePdf = async (bill) => {
     try {
       setGeneratingPdfId(bill.id);
-      const html = generateBillHtml(bill, billBooks);
+      const { targetUri, fileName, html } = await generatePdfFile(bill);
 
-      // 1. Generate local PDF with base64 in memory
-      const printResult = await Print.printToFileAsync({
-        html,
-        base64: true,
-      });
-
-      // 2. Prepare destination path in app documentDirectory
-      const safeBillNo = (bill.billNo || bill.id || 'Invoice').replace(/[^a-zA-Z0-9_-]/g, '_');
-      const fileName = `Bill_${safeBillNo}.pdf`;
-      const targetUri = `${FileSystem.documentDirectory}${fileName}`;
-
-      // 3. Remove existing file if present to guarantee clean write
-      const fileInfo = await FileSystem.getInfoAsync(targetUri);
-      if (fileInfo.exists) {
-        await FileSystem.deleteAsync(targetUri, { idempotent: true });
-      }
-
-      // 4. Write directly to documentDirectory using base64 (bypasses cache/Print read restrictions)
-      if (printResult.base64) {
-        await FileSystem.writeAsStringAsync(targetUri, printResult.base64, {
-          encoding: FileSystem.EncodingType?.Base64 || 'base64',
-        });
-      } else {
-        await FileSystem.copyAsync({
-          from: printResult.uri,
-          to: targetUri,
-        });
-      }
-
-      // 5. Directly open native Share sheet (WhatsApp, Drive, Gmail, Save to Files, etc.)
+      // Directly open native Share sheet (WhatsApp, Drive, Gmail, Save to Files, etc.)
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
         await Sharing.shareAsync(targetUri, {
@@ -1331,7 +1340,6 @@ export default function BillScreen({ navigation }) {
           UTI: '.pdf',
         });
       } else {
-        // Fallback to print preview if sharing is not available on this device
         await Print.printAsync({ html });
       }
     } catch (error) {
@@ -1355,6 +1363,46 @@ export default function BillScreen({ navigation }) {
 
   // Backward-compatible alias
   const handleDownloadPdf = handleSharePdf;
+
+  // Direct PDF Open / Preview in Phone's Native Viewer
+  const handlePreviewPdf = async (bill) => {
+    try {
+      setPreviewingPdfId(bill.id);
+      const { targetUri, fileName, html } = await generatePdfFile(bill);
+
+      // 1. Android: Open directly in Phone's default PDF viewer app (Google PDF Viewer, Acrobat, etc.)
+      if (Platform.OS === 'android') {
+        try {
+          const contentUri = await FileSystem.getContentUriAsync(targetUri);
+          await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+            data: contentUri,
+            flags: 1, // Intent.FLAG_GRANT_READ_URI_PERMISSION
+            type: 'application/pdf',
+          });
+          return;
+        } catch (intentErr) {
+          console.warn('Direct PDF intent failed, trying Sharing fallback:', intentErr);
+        }
+      }
+
+      // 2. iOS / Android fallback: Open directly in system PDF viewer / QuickLook
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(targetUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Open ${fileName}`,
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        await Print.printAsync({ html });
+      }
+    } catch (error) {
+      console.error('Error opening direct PDF:', error);
+      Alert.alert('Open PDF Failed', 'Could not open PDF file on this device.');
+    } finally {
+      setPreviewingPdfId(null);
+    }
+  };
 
   const grandTotalBilled = bills.reduce(
     (sum, b) => sum + (parseFloat(b.totalAmount) || 0),
@@ -1428,7 +1476,12 @@ export default function BillScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
         >
           {bills.map((bill) => (
-            <View key={bill.id} style={styles.billCard}>
+            <TouchableOpacity
+              key={bill.id}
+              style={styles.billCard}
+              activeOpacity={0.88}
+              onPress={() => handlePreviewPdf(bill)}
+            >
               {/* Bill Book Association Banner */}
               <View style={styles.cardBillBookBanner}>
                 <View style={styles.bannerLeft}>
@@ -1436,6 +1489,20 @@ export default function BillScreen({ navigation }) {
                   <Text style={styles.bannerBillBookName} numberOfLines={1}>
                     {bill.billBookName || 'Standard Bill Book'}
                   </Text>
+                </View>
+
+                <View style={styles.bannerPreviewBadge}>
+                  {previewingPdfId === bill.id ? (
+                    <>
+                      <ActivityIndicator size="small" color="#4F46E5" style={{ transform: [{ scale: 0.7 }] }} />
+                      <Text style={styles.bannerPreviewText}>Opening Preview...</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="eye-outline" size={12} color="#4F46E5" />
+                      <Text style={styles.bannerPreviewText}>Tap to Preview</Text>
+                    </>
+                  )}
                 </View>
               </View>
 
@@ -1453,8 +1520,21 @@ export default function BillScreen({ navigation }) {
                   </Text>
                 </View>
 
-                {/* PDF, Edit & Delete Action Buttons */}
+                {/* PDF Preview, Share, Edit & Delete Action Buttons */}
                 <View style={styles.cardActionsGroup}>
+                  <TouchableOpacity
+                    style={styles.previewBtn}
+                    onPress={() => handlePreviewPdf(bill)}
+                    activeOpacity={0.7}
+                    disabled={previewingPdfId === bill.id}
+                  >
+                    {previewingPdfId === bill.id ? (
+                      <ActivityIndicator size="small" color="#4F46E5" />
+                    ) : (
+                      <Ionicons name="eye-outline" size={16} color="#4F46E5" />
+                    )}
+                  </TouchableOpacity>
+
                   <TouchableOpacity
                     style={styles.pdfBtn}
                     onPress={() => handleSharePdf(bill)}
@@ -1510,19 +1590,41 @@ export default function BillScreen({ navigation }) {
                 ) : null}
               </View>
 
-              {/* Card Footer: Total Amount & Download PDF */}
+              {/* Card Footer: PDF Preview, Download PDF & Total Amount */}
               <View style={styles.cardFooter}>
-                <TouchableOpacity
-                  style={styles.footerPdfBtn}
-                  onPress={() => handleDownloadPdf(bill)}
-                  activeOpacity={0.7}
-                  disabled={generatingPdfId === bill.id}
-                >
-                  <Ionicons name="cloud-download-outline" size={13} color="#DC2626" />
-                  <Text style={styles.footerPdfBtnText}>
-                    {generatingPdfId === bill.id ? 'Generating...' : 'Download PDF'}
-                  </Text>
-                </TouchableOpacity>
+                <View style={styles.cardFooterActions}>
+                  <TouchableOpacity
+                    style={styles.footerPreviewBtn}
+                    onPress={() => handlePreviewPdf(bill)}
+                    activeOpacity={0.7}
+                    disabled={previewingPdfId === bill.id}
+                  >
+                    {previewingPdfId === bill.id ? (
+                      <ActivityIndicator size="small" color="#4F46E5" />
+                    ) : (
+                      <Ionicons name="eye-outline" size={13} color="#4F46E5" />
+                    )}
+                    <Text style={styles.footerPreviewBtnText}>
+                      {previewingPdfId === bill.id ? 'Opening...' : 'Preview PDF'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.footerPdfBtn}
+                    onPress={() => handleDownloadPdf(bill)}
+                    activeOpacity={0.7}
+                    disabled={generatingPdfId === bill.id}
+                  >
+                    {generatingPdfId === bill.id ? (
+                      <ActivityIndicator size="small" color="#DC2626" />
+                    ) : (
+                      <Ionicons name="cloud-download-outline" size={13} color="#DC2626" />
+                    )}
+                    <Text style={styles.footerPdfBtnText}>
+                      {generatingPdfId === bill.id ? 'Generating...' : 'Download PDF'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
                 <View style={styles.totalAmountWrap}>
                   <Text style={styles.totalAmountValue}>
@@ -1530,7 +1632,7 @@ export default function BillScreen({ navigation }) {
                   </Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </ScrollView>
       )}
@@ -2430,6 +2532,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#059669',
   },
+  bannerPreviewBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  bannerPreviewText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
   cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2465,6 +2583,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  previewBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pdfBtn: {
     width: 32,
@@ -2631,6 +2759,28 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
+  },
+  cardFooterActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  footerPreviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  footerPreviewBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4F46E5',
   },
   cardFooterLeft: {
     flexDirection: 'column',
