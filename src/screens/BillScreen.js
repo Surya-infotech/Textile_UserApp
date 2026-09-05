@@ -1490,26 +1490,16 @@ export default function BillScreen({ navigation }) {
                     {bill.billBookName || 'Standard Bill Book'}
                   </Text>
                 </View>
-
-                <View style={styles.bannerPreviewBadge}>
-                  {previewingPdfId === bill.id ? (
-                    <>
-                      <ActivityIndicator size="small" color="#4F46E5" style={{ transform: [{ scale: 0.7 }] }} />
-                      <Text style={styles.bannerPreviewText}>Opening Preview...</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons name="eye-outline" size={12} color="#4F46E5" />
-                      <Text style={styles.bannerPreviewText}>Tap to Preview</Text>
-                    </>
-                  )}
-                </View>
               </View>
 
               {/* Card Header Row */}
               <View style={styles.cardHeaderRow}>
                 <View style={styles.billIconWrap}>
-                  <Ionicons name="receipt" size={20} color="#4F46E5" />
+                  {previewingPdfId === bill.id ? (
+                    <ActivityIndicator size="small" color="#4F46E5" />
+                  ) : (
+                    <Ionicons name="receipt" size={20} color="#4F46E5" />
+                  )}
                 </View>
                 <View style={styles.cardHeaderInfo}>
                   <Text style={styles.billPartyName} numberOfLines={1}>
@@ -1520,21 +1510,8 @@ export default function BillScreen({ navigation }) {
                   </Text>
                 </View>
 
-                {/* PDF Preview, Share, Edit & Delete Action Buttons */}
+                {/* PDF Share, Edit & Delete Action Buttons */}
                 <View style={styles.cardActionsGroup}>
-                  <TouchableOpacity
-                    style={styles.previewBtn}
-                    onPress={() => handlePreviewPdf(bill)}
-                    activeOpacity={0.7}
-                    disabled={previewingPdfId === bill.id}
-                  >
-                    {previewingPdfId === bill.id ? (
-                      <ActivityIndicator size="small" color="#4F46E5" />
-                    ) : (
-                      <Ionicons name="eye-outline" size={16} color="#4F46E5" />
-                    )}
-                  </TouchableOpacity>
-
                   <TouchableOpacity
                     style={styles.pdfBtn}
                     onPress={() => handleSharePdf(bill)}
@@ -1590,41 +1567,23 @@ export default function BillScreen({ navigation }) {
                 ) : null}
               </View>
 
-              {/* Card Footer: PDF Preview, Download PDF & Total Amount */}
+              {/* Card Footer: Total Amount & Download PDF */}
               <View style={styles.cardFooter}>
-                <View style={styles.cardFooterActions}>
-                  <TouchableOpacity
-                    style={styles.footerPreviewBtn}
-                    onPress={() => handlePreviewPdf(bill)}
-                    activeOpacity={0.7}
-                    disabled={previewingPdfId === bill.id}
-                  >
-                    {previewingPdfId === bill.id ? (
-                      <ActivityIndicator size="small" color="#4F46E5" />
-                    ) : (
-                      <Ionicons name="eye-outline" size={13} color="#4F46E5" />
-                    )}
-                    <Text style={styles.footerPreviewBtnText}>
-                      {previewingPdfId === bill.id ? 'Opening...' : 'Preview PDF'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.footerPdfBtn}
-                    onPress={() => handleDownloadPdf(bill)}
-                    activeOpacity={0.7}
-                    disabled={generatingPdfId === bill.id}
-                  >
-                    {generatingPdfId === bill.id ? (
-                      <ActivityIndicator size="small" color="#DC2626" />
-                    ) : (
-                      <Ionicons name="cloud-download-outline" size={13} color="#DC2626" />
-                    )}
-                    <Text style={styles.footerPdfBtnText}>
-                      {generatingPdfId === bill.id ? 'Generating...' : 'Download PDF'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={styles.footerPdfBtn}
+                  onPress={() => handleDownloadPdf(bill)}
+                  activeOpacity={0.7}
+                  disabled={generatingPdfId === bill.id}
+                >
+                  {generatingPdfId === bill.id ? (
+                    <ActivityIndicator size="small" color="#DC2626" />
+                  ) : (
+                    <Ionicons name="cloud-download-outline" size={13} color="#DC2626" />
+                  )}
+                  <Text style={styles.footerPdfBtnText}>
+                    {generatingPdfId === bill.id ? 'Generating...' : 'Download PDF'}
+                  </Text>
+                </TouchableOpacity>
 
                 <View style={styles.totalAmountWrap}>
                   <Text style={styles.totalAmountValue}>
@@ -2532,22 +2491,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#059669',
   },
-  bannerPreviewBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-  },
-  bannerPreviewText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#4F46E5',
-  },
   cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2583,16 +2526,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  previewBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#EEF2FF',
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   pdfBtn: {
     width: 32,
@@ -2759,28 +2692,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
-  },
-  cardFooterActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  footerPreviewBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#EEF2FF',
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  footerPreviewBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#4F46E5',
   },
   cardFooterLeft: {
     flexDirection: 'column',
