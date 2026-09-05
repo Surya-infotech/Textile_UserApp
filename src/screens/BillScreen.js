@@ -1597,21 +1597,8 @@ export default function BillScreen({ navigation }) {
                   </Text>
                 </View>
 
-                {/* PDF Share, Edit & Delete Action Buttons */}
+                {/* Edit & Delete Action Buttons */}
                 <View style={styles.cardActionsGroup}>
-                  <TouchableOpacity
-                    style={styles.pdfBtn}
-                    onPress={() => handleSharePdf(bill)}
-                    activeOpacity={0.7}
-                    disabled={sharingPdfId === bill.id}
-                  >
-                    {sharingPdfId === bill.id ? (
-                      <ActivityIndicator size="small" color="#DC2626" />
-                    ) : (
-                      <Ionicons name="share-social-outline" size={16} color="#DC2626" />
-                    )}
-                  </TouchableOpacity>
-
                   <TouchableOpacity
                     style={styles.editBtn}
                     onPress={() => handleOpenEditModal(bill)}
@@ -1654,23 +1641,35 @@ export default function BillScreen({ navigation }) {
                 ) : null}
               </View>
 
-              {/* Card Footer: Total Amount & Download PDF */}
+              {/* Card Footer: Download & Share Buttons + Total Amount */}
               <View style={styles.cardFooter}>
-                <TouchableOpacity
-                  style={styles.footerPdfBtn}
-                  onPress={() => handleDownloadPdf(bill)}
-                  activeOpacity={0.7}
-                  disabled={downloadingPdfId === bill.id}
-                >
-                  {downloadingPdfId === bill.id ? (
-                    <ActivityIndicator size="small" color="#DC2626" />
-                  ) : (
-                    <Ionicons name="cloud-download-outline" size={13} color="#DC2626" />
-                  )}
-                  <Text style={styles.footerPdfBtnText}>
-                    {downloadingPdfId === bill.id ? 'Downloading...' : 'Download PDF'}
-                  </Text>
-                </TouchableOpacity>
+                <View style={styles.footerButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.footerActionBtn}
+                    onPress={() => handleDownloadPdf(bill)}
+                    activeOpacity={0.7}
+                    disabled={downloadingPdfId === bill.id}
+                  >
+                    {downloadingPdfId === bill.id ? (
+                      <ActivityIndicator size="small" color="#DC2626" />
+                    ) : (
+                      <Ionicons name="cloud-download-outline" size={16} color="#DC2626" />
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.footerShareBtn}
+                    onPress={() => handleSharePdf(bill)}
+                    activeOpacity={0.7}
+                    disabled={sharingPdfId === bill.id}
+                  >
+                    {sharingPdfId === bill.id ? (
+                      <ActivityIndicator size="small" color="#4F46E5" />
+                    ) : (
+                      <Ionicons name="share-social-outline" size={16} color="#4F46E5" />
+                    )}
+                  </TouchableOpacity>
+                </View>
 
                 <View style={styles.totalAmountWrap}>
                   <Text style={styles.totalAmountValue}>
@@ -2780,27 +2779,30 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
-  cardFooterLeft: {
-    flexDirection: 'column',
-    gap: 4,
-    justifyContent: 'center',
-  },
-  footerPdfBtn: {
+  footerButtonsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FFF1F2',
+    gap: 8,
+  },
+  footerActionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FECDD3',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  footerPdfBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#E11D48',
+  footerShareBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   totalItemsLabel: {
     fontSize: 12,
